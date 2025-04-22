@@ -1,0 +1,122 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  passwordHash      String
+  firstName         String
+  lastName          String
+  companyName       String
+  emailVerified     Boolean   @default(false)
+  verificationToken String?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastLogin         DateTime?
+
+  // Relations
+  jobs         Job[]
+  notes        Note[]
+  interviews   Interview[]  @relation("Interviewer")
+  candidates   Candidate[]  // Relation to candidates created by this user
+  
+  @@map("users")
+}
+
+model Job {
+  id              String   @id @default(uuid())
+  title           String
+  description     String
+  location        String
+  contractType    String   // CDI, CDD, Stage, etc.
+  salary          String?
+  skills          String[] // Array of required skills
+  experienceLevel String   // junior, intermediate, senior
+  languages       String?
+  startDate       DateTime?
+  pipelineStages  String[] // Custom stages for this job
+  status          String   // active, draft, closed
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  userId     String     // Creator of the job
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  candidates Candidate[]
+  interviews Interview[]
+
+  @@map("jobs")
+}
+
+model Candidate {
+  id           String   @id @default(uuid())
+  name         String
+  email        String?
+  phone        String?
+  resumeUrl    String   // Path to the stored CV file
+  skills       String[] // Skills extracted from CV
+  experience   Int?     // Years of experience
+  education    String?
+  matchingScore Float    // Score calculated based on job matching
+  status       String   // new, toContact, interview, hired, rejected
+  lastActivity DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  jobId       String
+  job         Job         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  userId      String      // User who added this candidate
+  user        User        @relation(fields: [userId], references: [id])
+  notes       Note[]
+  interviews  Interview[]
+
+  @@map("candidates")
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notes")
+}
+
+model Interview {
+  id          String    @id @default(uuid())
+  date        DateTime
+  location    String?   // Could be physical location or video link
+  notes       String?
+  status      String    // scheduled, completed, canceled
+  feedback    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  jobId       String
+  job         Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  interviewerId String
+  interviewer   User     @relation("Interviewer", fields: [interviewerId], references: [id])
+
+  @@map("interviews")
+}

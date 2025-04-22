@@ -1,0 +1,33 @@
+# Dépendances
+node_modules/
+*/node_modules/
+
+# Fichiers d'environnement
+.env
+.env.local
+.env.development
+.env.production
+
+# Fichiers de build
+/frontend/build/
+/frontend/dist/
+
+# Fichiers de logs
+logs/
+*.log
+
+# Fichiers de système
+.DS_Store
+Thumbs.db
+
+# Fichiers d'uploads (en développement)
+/backend/uploads/
+
+# Prisma
+/backend/prisma/migrations/
+
+# Fichiers IDE
+.idea/
+.vscode/
+*.swp
+*.swo

@@ -1,0 +1,4747 @@
+Contenu des dossiers client, server et shared:
+
+
+=== DOSSIER: frontend\src ===
+
+=== FICHIER: frontend\src\App.tsx ===
+import React, { useEffect } from 'react';
+import { RouterProvider } from 'react-router-dom';
+import router from './routes';
+import { AuthProvider } from './context/AuthContext';
+
+// Import i18n configuration
+import './lib/i18n';
+
+function App() {
+  return (
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  );
+}
+
+export default App;
+
+
+=== DOSSIER: frontend\src\assets ===
+
+
+=== DOSSIER: frontend\src\components ===
+
+
+=== DOSSIER: frontend\src\components\auth ===
+
+
+=== DOSSIER: frontend\src\components\candidates ===
+
+
+=== DOSSIER: frontend\src\components\dashboard ===
+
+
+=== DOSSIER: frontend\src\components\interviews ===
+
+
+=== DOSSIER: frontend\src\components\jobs ===
+
+
+=== DOSSIER: frontend\src\components\ui ===
+
+=== FICHIER: frontend\src\components\ui\Badge.tsx ===
+import React from 'react';
+
+type BadgeVariant = 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info';
+type BadgeSize = 'sm' | 'md' | 'lg';
+
+interface BadgeProps {
+  children: React.ReactNode;
+  variant?: BadgeVariant;
+  size?: BadgeSize;
+  rounded?: boolean;
+  icon?: React.ReactNode;
+  className?: string;
+}
+
+const Badge: React.FC<BadgeProps> = ({
+  children,
+  variant = 'default',
+  size = 'md',
+  rounded = false,
+  icon,
+  className = '',
+}) => {
+  const variantClasses = {
+    default: 'bg-gray-100 text-gray-800',
+    primary: 'bg-primary-100 text-primary-800',
+    secondary: 'bg-secondary-100 text-secondary-800',
+    success: 'bg-green-100 text-green-800',
+    warning: 'bg-yellow-100 text-yellow-800',
+    danger: 'bg-red-100 text-red-800',
+    info: 'bg-blue-100 text-blue-800',
+  };
+
+  const sizeClasses = {
+    sm: 'text-xs px-2 py-0.5',
+    md: 'text-xs px-2.5 py-1',
+    lg: 'text-sm px-3 py-1.5',
+  };
+
+  const roundedClass = rounded ? 'rounded-full' : 'rounded';
+
+  return (
+    <span
+      className={`
+        inline-flex items-center font-medium
+        ${variantClasses[variant]}
+        ${sizeClasses[size]}
+        ${roundedClass}
+        ${className}
+      `}
+    >
+      {icon && <span className="mr-1.5">{icon}</span>}
+      {children}
+    </span>
+  );
+};
+
+export default Badge;
+
+=== FICHIER: frontend\src\components\ui\Button.tsx ===
+import React, { useEffect } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import LoadingScreen from '../components/ui/LoadingScreen';
+
+const RootLayout: React.FC = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!isLoading) {
+      // Public routes that don't require authentication
+      const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
+      
+      // Check if current path is a public route
+      const isPublicRoute = publicRoutes.some(route => 
+        location.pathname === route || location.pathname.startsWith('/reset-password')
+      );
+
+      if (isAuthenticated && isPublicRoute) {
+        // If user is authenticated and tries to access a public route, redirect to dashboard
+        navigate('/app', { replace: true });
+      } else if (!isAuthenticated && !isPublicRoute) {
+        // If user is not authenticated and tries to access a protected route, redirect to login
+        navigate('/login', { replace: true });
+      }
+    }
+  }, [isAuthenticated, isLoading, location.pathname, navigate]);
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  return <Outlet />;
+};
+
+export default RootLayout;
+
+=== FICHIER: frontend\src\components\ui\Card.tsx ===
+import React from 'react';
+
+interface CardProps {
+  children: React.ReactNode;
+  className?: string;
+  padding?: 'none' | 'small' | 'normal' | 'large';
+  title?: string;
+  subtitle?: string;
+  actions?: React.ReactNode;
+  footer?: React.ReactNode;
+  noBorder?: boolean;
+  hoverable?: boolean;
+}
+
+const Card: React.FC<CardProps> = ({
+  children,
+  className = '',
+  padding = 'normal',
+  title,
+  subtitle,
+  actions,
+  footer,
+  noBorder = false,
+  hoverable = false,
+}) => {
+  const paddingClasses = {
+    none: '',
+    small: 'p-3',
+    normal: 'p-4 sm:p-6',
+    large: 'p-6 sm:p-8',
+  };
+
+  return (
+    <div
+      className={`
+        bg-white rounded-lg shadow-sm
+        ${!noBorder ? 'border border-gray-200' : ''}
+        ${hoverable ? 'transition duration-200 hover:shadow-md' : ''}
+        ${className}
+      `}
+    >
+      {(title || actions) && (
+        <div className="border-b border-gray-200 px-4 py-4 sm:px-6 flex items-center justify-between">
+          <div>
+            {title && <h3 className="text-lg font-medium text-gray-900">{title}</h3>}
+            {subtitle && <p className="mt-1 text-sm text-gray-500">{subtitle}</p>}
+          </div>
+          {actions && <div>{actions}</div>}
+        </div>
+      )}
+      
+      <div className={paddingClasses[padding]}>{children}</div>
+      
+      {footer && (
+        <div className="border-t border-gray-200 px-4 py-4 sm:px-6 bg-gray-50 rounded-b-lg">
+          {footer}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Card;
+
+=== FICHIER: frontend\src\components\ui\Input.tsx ===
+import React, { forwardRef } from 'react';
+
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+  helperText?: string;
+}
+
+const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({ label, error, leftIcon, rightIcon, helperText, className = '', ...props }, ref) => {
+    const id = props.id || props.name || Math.random().toString(36).substring(2, 9);
+    
+    return (
+      <div className="w-full">
+        {label && (
+          <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+            {label}
+          </label>
+        )}
+        
+        <div className="relative">
+          {leftIcon && (
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              {leftIcon}
+            </div>
+          )}
+          
+          <input
+            ref={ref}
+            id={id}
+            className={`
+              block w-full rounded-md sm:text-sm
+              ${leftIcon ? 'pl-10' : 'pl-3'}
+              ${rightIcon ? 'pr-10' : 'pr-3'}
+              py-2
+              ${error 
+                ? 'border-red-300 text-red-900 placeholder-red-300 focus:outline-none focus:ring-red-500 focus:border-red-500' 
+                : 'border-gray-300 focus:ring-primary-500 focus:border-primary-500'
+              }
+              ${className}
+            `}
+            aria-invalid={error ? 'true' : 'false'}
+            aria-describedby={error ? `${id}-error` : helperText ? `${id}-helper` : undefined}
+            {...props}
+          />
+          
+          {rightIcon && (
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+              {rightIcon}
+            </div>
+          )}
+        </div>
+        
+        {error && (
+          <p className="mt-1 text-sm text-red-600" id={`${id}-error`}>
+            {error}
+          </p>
+        )}
+        
+        {helperText && !error && (
+          <p className="mt-1 text-sm text-gray-500" id={`${id}-helper`}>
+            {helperText}
+          </p>
+        )}
+      </div>
+    );
+  }
+);
+
+Input.displayName = 'Input';
+
+export default Input;
+
+=== FICHIER: frontend\src\components\ui\LoadingScreen.tsx ===
+import React from 'react';
+
+const LoadingScreen: React.FC = () => {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
+      <div className="text-center">
+        <div className="flex justify-center mb-6">
+          <div className="text-3xl font-bold">
+            <span className="text-primary-700">Recrut</span>
+            <span className="text-secondary-500">PME</span>
+          </div>
+        </div>
+        
+        <svg
+          className="animate-spin h-12 w-12 mx-auto text-primary-600"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          ></circle>
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          ></path>
+        </svg>
+        
+        <p className="mt-4 text-sm text-gray-600">Chargement...</p>
+      </div>
+    </div>
+  );
+};
+
+export default LoadingScreen;
+
+
+=== DOSSIER: frontend\src\context ===
+
+=== FICHIER: frontend\src\context\AuthContext.tsx ===
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { jwtDecode } from 'jwt-decode';
+import axios from 'axios';
+
+interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  companyName: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (userData: RegisterData) => Promise<void>;
+  logout: () => void;
+  resetPassword: (email: string) => Promise<void>;
+}
+
+interface RegisterData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  companyName: string;
+}
+
+interface JwtPayload {
+  sub: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  companyName: string;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      if (token) {
+        try {
+          // Validate token with the server
+          const response = await axios.get('/api/auth/me', {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+
+          if (response.status === 200) {
+            // Decode JWT to get user info
+            const decoded = jwtDecode<JwtPayload>(token);
+            setUser({
+              id: decoded.sub,
+              email: decoded.email,
+              firstName: decoded.firstName,
+              lastName: decoded.lastName,
+              companyName: decoded.companyName
+            });
+            setIsAuthenticated(true);
+          } else {
+            // Token is invalid
+            localStorage.removeItem('token');
+            setToken(null);
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+        } catch (error) {
+          console.error('Auth error:', error);
+          localStorage.removeItem('token');
+          setToken(null);
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    initAuth();
+  }, [token]);
+
+  const login = async (email: string, password: string): Promise<void> => {
+    setIsLoading(true);
+    try {
+      const response = await axios.post('/api/auth/login', { email, password });
+      const { token: newToken, user: userData } = response.data;
+      
+      localStorage.setItem('token', newToken);
+      setToken(newToken);
+      setUser(userData);
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (userData: RegisterData): Promise<void> => {
+    setIsLoading(true);
+    try {
+      await axios.post('/api/auth/register', userData);
+      // After registration, user needs to confirm email
+      // We don't log them in automatically
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = (): void => {
+    localStorage.removeItem('token');
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+  };
+
+  const resetPassword = async (email: string): Promise<void> => {
+    try {
+      await axios.post('/api/auth/reset-password', { email });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      throw error;
+    }
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isAuthenticated,
+        isLoading,
+        login,
+        register,
+        logout,
+        resetPassword
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+
+=== DOSSIER: frontend\src\hooks ===
+
+=== FICHIER: frontend\src\index.css ===
+@tailwind base; @tailwind components; @tailwind utilities; 
+
+
+=== FICHIER: frontend\src\index.tsx ===
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+
+const root = ReactDOM.createRoot(
+  document.getElementById('root') as HTMLElement
+);
+
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+
+=== DOSSIER: frontend\src\layouts ===
+
+
+=== DOSSIER: frontend\src\layouts\auth ===
+
+=== FICHIER: frontend\src\layouts\AuthLayout.tsx ===
+import React from 'react';
+import { Outlet, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+
+const AuthLayout: React.FC = () => {
+  const { t, i18n } = useTranslation();
+  
+  const changeLanguage = (language: string) => {
+    i18n.changeLanguage(language);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-primary-600 to-primary-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md flex flex-col items-center">
+        <div className="flex justify-center mb-6">
+          <Link to="/" className="flex items-center text-3xl font-bold text-white">
+            <span>Recrut</span>
+            <span className="text-secondary-400">PME</span>
+          </Link>
+        </div>
+        
+        {/* Language Switcher */}
+        <div className="mb-6 flex space-x-4">
+          <button
+            onClick={() => changeLanguage('fr')}
+            className={`px-3 py-1 rounded-md text-sm ${
+              i18n.language === 'fr'
+                ? 'bg-white text-primary-700 font-semibold'
+                : 'text-white bg-primary-700/30 hover:bg-primary-700/50'
+            }`}
+          >
+            Français
+          </button>
+          <button
+            onClick={() => changeLanguage('en')}
+            className={`px-3 py-1 rounded-md text-sm ${
+              i18n.language === 'en'
+                ? 'bg-white text-primary-700 font-semibold'
+                : 'text-white bg-primary-700/30 hover:bg-primary-700/50'
+            }`}
+          >
+            English
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-2 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          <Outlet />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AuthLayout;
+
+
+=== DOSSIER: frontend\src\layouts\dashboard ===
+
+=== FICHIER: frontend\src\layouts\dashboard\DashboardLayout.tsx ===
+import React, { useState } from 'react';
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
+import {
+  HomeIcon,
+  BriefcaseIcon,
+  UserGroupIcon,
+  CalendarIcon,
+  ChartBarIcon,
+  Cog6ToothIcon,
+  BellIcon,
+  ArrowLeftOnRectangleIcon,
+  Bars3Icon,
+  XMarkIcon,
+  ChevronDownIcon,
+} from '@heroicons/react/24/outline';
+
+const DashboardLayout: React.FC = () => {
+  const { t } = useTranslation();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const navigation = [
+    { name: t('dashboard.title'), href: '/app', icon: HomeIcon },
+    { name: t('jobs.title'), href: '/app/jobs', icon: BriefcaseIcon },
+    { name: t('candidates.title'), href: '/app/candidates', icon: UserGroupIcon },
+    { name: t('interviews.title'), href: '/app/interviews', icon: CalendarIcon },
+    { name: t('reports.title'), href: '/app/reports', icon: ChartBarIcon },
+    { name: t('settings.title'), href: '/app/settings', icon: Cog6ToothIcon },
+  ];
+
+  const isActive = (path: string) => {
+    if (path === '/app') {
+      return location.pathname === '/app';
+    }
+    return location.pathname.startsWith(path);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* Mobile Sidebar Backdrop */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black bg-opacity-50 transition-opacity lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div
+        className={`fixed inset-y-0 left-0 z-30 w-64 transform overflow-y-auto bg-primary-700 transition duration-300 lg:translate-x-0 lg:static lg:inset-0 ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex h-16 items-center justify-between px-6 text-white">
+          <Link to="/app" className="flex items-center text-xl font-bold">
+            <span className="text-white">Recrut</span>
+            <span className="text-secondary-400">PME</span>
+          </Link>
+          <button
+            className="lg:hidden text-white"
+            onClick={() => setIsSidebarOpen(false)}
+          >
+            <XMarkIcon className="h-6 w-6" />
+          </button>
+        </div>
+
+        <nav className="mt-6 px-4">
+          <div className="space-y-1">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`flex items-center rounded-lg px-4 py-2.5 text-sm font-medium ${
+                  isActive(item.href)
+                    ? 'bg-primary-800 text-white'
+                    : 'text-primary-100 hover:bg-primary-600'
+                }`}
+              >
+                <item.icon className="mr-3 h-5 w-5" />
+                {item.name}
+              </Link>
+            ))}
+          </div>
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex flex-col flex-1 min-h-screen lg:pl-64">
+        {/* Header */}
+        <header className="bg-white shadow-sm z-10">
+          <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
+            <button
+              className="text-gray-500 lg:hidden"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Bars3Icon className="h-6 w-6" />
+            </button>
+
+            <div className="flex items-center">
+              <button className="text-gray-400 p-1 mr-4 rounded-full hover:bg-gray-100">
+                <BellIcon className="h-6 w-6" />
+              </button>
+
+              <div className="relative">
+                <button
+                  className="flex items-center space-x-2"
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                >
+                  <div className="flex-shrink-0">
+                    <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center text-white">
+                      {user?.firstName?.charAt(0)}
+                      {user?.lastName?.charAt(0)}
+                    </div>
+                  </div>
+                  <div className="hidden md:flex md:items-center">
+                    <span className="text-sm font-medium text-gray-700">
+                      {user?.firstName} {user?.lastName}
+                    </span>
+                    <ChevronDownIcon className="h-4 w-4 ml-1 text-gray-500" />
+                  </div>
+                </button>
+
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                    <div className="py-1" onClick={() => setIsUserMenuOpen(false)}>
+                      <Link
+                        to="/app/settings"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        {t('settings.title')}
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <div className="flex items-center">
+                          <ArrowLeftOnRectangleIcon className="h-4 w-4 mr-2" />
+                          {t('common.logout')}
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default DashboardLayout;
+
+=== FICHIER: frontend\src\layouts\RootLayout.tsx ===
+import React, { useEffect } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import LoadingScreen from '../components/ui/LoadingScreen';
+
+const RootLayout: React.FC = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!isLoading) {
+      // Public routes that don't require authentication
+      const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
+      
+      // Check if current path is a public route
+      const isPublicRoute = publicRoutes.some(route => 
+        location.pathname === route || location.pathname.startsWith('/reset-password')
+      );
+
+      if (isAuthenticated && isPublicRoute) {
+        // If user is authenticated and tries to access a public route, redirect to dashboard
+        navigate('/app', { replace: true });
+      } else if (!isAuthenticated && !isPublicRoute) {
+        // If user is not authenticated and tries to access a protected route, redirect to login
+        navigate('/login', { replace: true });
+      }
+    }
+  }, [isAuthenticated, isLoading, location.pathname, navigate]);
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  return <Outlet />;
+};
+
+export default RootLayout;
+
+
+=== DOSSIER: frontend\src\lib ===
+
+=== FICHIER: frontend\src\lib\i18n.ts ===
+// src/lib/i18n.ts
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import LanguageDetector from 'i18next-browser-languagedetector';
+
+import frTranslation from '../locales/fr.json';
+import enTranslation from '../locales/en.json';
+
+const resources = {
+  fr: {
+    translation: frTranslation
+  },
+  en: {
+    translation: enTranslation
+  }
+};
+
+i18n
+  .use(LanguageDetector)
+  .use(initReactI18next)
+  .init({
+    resources,
+    fallbackLng: 'fr',
+    interpolation: {
+      escapeValue: false, // not needed for React
+    },
+    detection: {
+      order: ['localStorage', 'navigator'],
+      caches: ['localStorage'],
+    }
+  });
+
+export default i18n;
+
+
+=== DOSSIER: frontend\src\locales ===
+
+=== FICHIER: frontend\src\locales\en.json ===
+{
+    "common": {
+      "login": "Login",
+      "register": "Sign Up",
+      "logout": "Logout",
+      "email": "Email",
+      "password": "Password",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "companyName": "Company Name",
+      "submit": "Submit",
+      "cancel": "Cancel",
+      "save": "Save",
+      "delete": "Delete",
+      "edit": "Edit",
+      "create": "Create",
+      "search": "Search",
+      "loading": "Loading...",
+      "error": "Error",
+      "success": "Success",
+      "required": "This field is required",
+      "invalidEmail": "Invalid email",
+      "passwordMinLength": "Password must be at least 8 characters"
+    },
+    "auth": {
+      "loginTitle": "Login to RecrutPME",
+      "registerTitle": "Create a company account",
+      "forgotPassword": "Forgot password?",
+      "noAccount": "Don't have an account?",
+      "createAccount": "Create an account",
+      "alreadyHaveAccount": "Already have an account?",
+      "termsAgree": "I agree to the terms of service and privacy policy",
+      "resetPassword": "Reset Password",
+      "resetPasswordInstructions": "Enter your email address to receive a reset link",
+      "confirmPassword": "Confirm Password",
+      "passwordMatch": "Passwords must match"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "welcome": "Welcome to RecrutPME",
+      "summary": "Recruitment summary",
+      "activeJobs": "Active Jobs",
+      "candidatesAnalyzed": "CVs analyzed",
+      "matchingRate": "Matching rate",
+      "interviews": "Scheduled interviews",
+      "notifications": "Notifications",
+      "recentCandidates": "Recent candidates",
+      "tasksTitle": "Current tasks",
+      "createJob": "Create job listing",
+      "viewAllJobs": "View all jobs",
+      "viewAllCandidates": "View all candidates"
+    },
+    "jobs": {
+      "title": "Job Listings",
+      "createTitle": "Create a job listing",
+      "editTitle": "Edit job listing",
+      "jobTitle": "Job title",
+      "location": "Location",
+      "contract": "Contract type",
+      "salary": "Salary",
+      "skills": "Required skills",
+      "experience": "Experience level",
+      "languages": "Required languages",
+      "startDate": "Desired start date",
+      "description": "Job description",
+      "contracts": {
+        "cdi": "Permanent",
+        "cdd": "Fixed-term",
+        "internship": "Internship",
+        "freelance": "Freelance",
+        "apprenticeship": "Apprenticeship"
+      },
+      "experience_levels": {
+        "junior": "Junior",
+        "intermediate": "Intermediate",
+        "senior": "Senior"
+      },
+      "status": {
+        "active": "Active",
+        "closed": "Closed",
+        "draft": "Draft"
+      },
+      "pipeline": "Recruitment pipeline",
+      "pipelineStages": "Pipeline stages",
+      "addStage": "Add stage"
+    },
+    "candidates": {
+      "title": "Candidates",
+      "import": "Import resumes",
+      "analyze": "Analyze with AI",
+      "uploadInstructions": "Drag and drop your files here or click to browse",
+      "fileTypes": "Accepted formats: .pdf, .docx (max 10 files)",
+      "selectJob": "Select job listing",
+      "name": "Name",
+      "skills": "Skills",
+      "matchingScore": "Matching score",
+      "experience": "Experience",
+      "status": "Status",
+      "downloadCV": "Download resume",
+      "addNote": "Add note",
+      "scheduleInterview": "Schedule interview",
+      "statuses": {
+        "new": "New",
+        "toContact": "To contact",
+        "interview": "Interview",
+        "hired": "Hired",
+        "rejected": "Rejected"
+      }
+    },
+    "interviews": {
+      "title": "Interviews",
+      "schedule": "Schedule an interview",
+      "date": "Date",
+      "time": "Time",
+      "videoLink": "Video conference link",
+      "interviewer": "Interviewer",
+      "notes": "Internal notes",
+      "sendEmail": "Send email to candidate",
+      "upcoming": "Upcoming interviews",
+      "past": "Past interviews",
+      "feedback": "Add feedback"
+    },
+    "reports": {
+      "title": "Reports",
+      "processingTime": "Average processing time",
+      "conversionRate": "Conversion rate",
+      "matchingRate": "Average matching rate",
+      "export": "Export",
+      "period": "Period",
+      "filterByJob": "Filter by job",
+      "jobPerformance": "Performance by job"
+    },
+    "settings": {
+      "title": "Settings",
+      "profile": "Profile",
+      "company": "Company",
+      "users": "Users",
+      "notifications": "Notifications",
+      "language": "Language",
+      "privacy": "Privacy",
+      "dataExport": "Export data",
+      "delete": "Delete my account"
+    },
+    "onboarding": {
+      "welcome": "Welcome to RecrutPME",
+      "step1": "Create a job listing",
+      "step2": "Upload resumes",
+      "step3": "AI sorting",
+      "step4": "Organize your interviews",
+      "next": "Next",
+      "skip": "Skip",
+      "complete": "Complete"
+    }
+  }
+
+=== FICHIER: frontend\src\locales\fr.json ===
+{
+    "common": {
+      "login": "Connexion",
+      "register": "Créer un compte",
+      "logout": "Déconnexion",
+      "email": "Email",
+      "password": "Mot de passe",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "companyName": "Nom de l'entreprise",
+      "submit": "Valider",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "delete": "Supprimer",
+      "edit": "Modifier",
+      "create": "Créer",
+      "search": "Rechercher",
+      "loading": "Chargement...",
+      "error": "Erreur",
+      "success": "Succès",
+      "required": "Ce champ est requis",
+      "invalidEmail": "Email invalide",
+      "passwordMinLength": "Le mot de passe doit contenir au moins 8 caractères"
+    },
+    "auth": {
+      "loginTitle": "Connexion à RecrutPME",
+      "registerTitle": "Créer un compte entreprise",
+      "forgotPassword": "Mot de passe oublié ?",
+      "noAccount": "Vous n'avez pas de compte ?",
+      "createAccount": "Créer un compte",
+      "alreadyHaveAccount": "Vous avez déjà un compte ?",
+      "termsAgree": "J'accepte les conditions générales d'utilisation et la politique de confidentialité",
+      "resetPassword": "Réinitialiser le mot de passe",
+      "resetPasswordInstructions": "Entrez votre adresse email pour recevoir un lien de réinitialisation",
+      "confirmPassword": "Confirmer le mot de passe",
+      "passwordMatch": "Les mots de passe doivent correspondre"
+    },
+    "dashboard": {
+      "title": "Tableau de bord",
+      "welcome": "Bienvenue sur RecrutPME",
+      "summary": "Résumé de vos recrutements",
+      "activeJobs": "Offres actives",
+      "candidatesAnalyzed": "CV analysés",
+      "matchingRate": "Taux de matching",
+      "interviews": "Entretiens programmés",
+      "notifications": "Notifications",
+      "recentCandidates": "Candidats récents",
+      "tasksTitle": "Tâches en cours",
+      "createJob": "Créer une offre d'emploi",
+      "viewAllJobs": "Voir toutes les offres",
+      "viewAllCandidates": "Voir tous les candidats"
+    },
+    "jobs": {
+      "title": "Offres d'emploi",
+      "createTitle": "Créer une offre d'emploi",
+      "editTitle": "Modifier l'offre d'emploi",
+      "jobTitle": "Titre du poste",
+      "location": "Lieu",
+      "contract": "Type de contrat",
+      "salary": "Salaire",
+      "skills": "Compétences requises",
+      "experience": "Niveau d'expérience",
+      "languages": "Langues requises",
+      "startDate": "Date de début souhaitée",
+      "description": "Description du poste",
+      "contracts": {
+        "cdi": "CDI",
+        "cdd": "CDD",
+        "internship": "Stage",
+        "freelance": "Freelance",
+        "apprenticeship": "Alternance"
+      },
+      "experience_levels": {
+        "junior": "Débutant",
+        "intermediate": "Confirmé",
+        "senior": "Expert"
+      },
+      "status": {
+        "active": "Active",
+        "closed": "Clôturée",
+        "draft": "Brouillon"
+      },
+      "pipeline": "Pipeline de recrutement",
+      "pipelineStages": "Étapes du pipeline",
+      "addStage": "Ajouter une étape"
+    },
+    "candidates": {
+      "title": "Candidats",
+      "import": "Importer des CV",
+      "analyze": "Analyser avec l'IA",
+      "uploadInstructions": "Glissez-déposez vos fichiers ici ou cliquez pour parcourir",
+      "fileTypes": "Formats acceptés : .pdf, .docx (max 10 fichiers)",
+      "selectJob": "Sélectionner une offre d'emploi",
+      "name": "Nom",
+      "skills": "Compétences",
+      "matchingScore": "Score de correspondance",
+      "experience": "Expérience",
+      "status": "Statut",
+      "downloadCV": "Télécharger le CV",
+      "addNote": "Ajouter une note",
+      "scheduleInterview": "Planifier un entretien",
+      "statuses": {
+        "new": "Nouveau",
+        "toContact": "À contacter",
+        "interview": "Entretien",
+        "hired": "Embauché",
+        "rejected": "Refusé"
+      }
+    },
+    "interviews": {
+      "title": "Entretiens",
+      "schedule": "Planifier un entretien",
+      "date": "Date",
+      "time": "Heure",
+      "videoLink": "Lien visioconférence",
+      "interviewer": "Personne en charge",
+      "notes": "Notes internes",
+      "sendEmail": "Envoyer un email au candidat",
+      "upcoming": "Entretiens à venir",
+      "past": "Entretiens passés",
+      "feedback": "Ajouter un compte-rendu"
+    },
+    "reports": {
+      "title": "Rapports",
+      "processingTime": "Temps moyen de traitement",
+      "conversionRate": "Taux de conversion",
+      "matchingRate": "Taux de matching moyen",
+      "export": "Exporter",
+      "period": "Période",
+      "filterByJob": "Filtrer par offre",
+      "jobPerformance": "Performance par offre"
+    },
+    "settings": {
+      "title": "Paramètres",
+      "profile": "Profil",
+      "company": "Entreprise",
+      "users": "Utilisateurs",
+      "notifications": "Notifications",
+      "language": "Langue",
+      "privacy": "Confidentialité",
+      "dataExport": "Exporter les données",
+      "delete": "Supprimer mon compte"
+    },
+    "onboarding": {
+      "welcome": "Bienvenue sur RecrutPME",
+      "step1": "Créez une offre d'emploi",
+      "step2": "Uploadez des CV",
+      "step3": "L'IA fait le tri",
+      "step4": "Organisez vos entretiens",
+      "next": "Suivant",
+      "skip": "Passer",
+      "complete": "Terminer"
+    }
+  }
+
+
+=== DOSSIER: frontend\src\pages ===
+
+
+=== DOSSIER: frontend\src\pages\auth ===
+
+=== FICHIER: frontend\src\pages\auth\ForgotPassword.tsx ===
+import React, { useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { LockClosedIcon } from '@heroicons/react/24/outline';
+import axios from 'axios';
+
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+
+const ResetPassword: React.FC = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
+  
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<boolean>(false);
+
+  // Define validation schema
+  const resetPasswordSchema = z
+    .object({
+      password: z.string().min(8, t('common.passwordMinLength')),
+      confirmPassword: z.string().min(8, t('common.passwordMinLength')),
+    })
+    .refine(data => data.password === data.confirmPassword, {
+      message: t('auth.passwordMatch'),
+      path: ['confirmPassword'],
+    });
+
+  type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+  });
+
+  const onSubmit = async (data: ResetPasswordFormData) => {
+    if (!token) {
+      setApiError('Token de réinitialisation manquant');
+      return;
+    }
+    
+    try {
+      setApiError(null);
+      await axios.post('/api/auth/reset-password/confirm', {
+        password: data.password,
+        token,
+      });
+      setSuccess(true);
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
+    } catch (error: any) {
+      console.error('Reset password confirmation error:', error);
+      setApiError(
+        error.response?.data?.message || 'Une erreur est survenue lors de la réinitialisation'
+      );
+    }
+  };
+
+  if (!token) {
+    return (
+      <div className="text-center">
+        <div className="rounded-md bg-yellow-50 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-yellow-400"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-yellow-800">
+                Lien de réinitialisation invalide. Veuillez demander un nouveau lien.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 text-center">
+            <Link to="/forgot-password" className="font-medium text-primary-600 hover:text-primary-500">
+              Demander un nouveau lien
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="text-center">
+        <svg
+          className="mx-auto h-12 w-12 text-green-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M5 13l4 4L19 7"
+          ></path>
+        </svg>
+        <h2 className="mt-3 text-lg font-medium text-gray-900">
+          Mot de passe réinitialisé !
+        </h2>
+        <p className="mt-2 text-sm text-gray-500">
+          Votre mot de passe a été réinitialisé avec succès. Vous allez être redirigé vers la page de connexion.
+        </p>
+        <div className="mt-5">
+          <Link
+            to="/login"
+            className="font-medium text-primary-600 hover:text-primary-500"
+          >
+            Aller à la page de connexion
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">
+        {t('auth.resetPassword')}
+      </h2>
+
+      {apiError && (
+        <div className="mb-4 p-3 text-sm text-red-700 bg-red-100 rounded-md">
+          {apiError}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <Input
+          label={t('common.password')}
+          type="password"
+          autoComplete="new-password"
+          leftIcon={<LockClosedIcon className="h-5 w-5 text-gray-400" />}
+          error={errors.password?.message}
+          helperText={t('common.passwordMinLength')}
+          {...register('password')}
+        />
+
+        <Input
+          label={t('auth.confirmPassword')}
+          type="password"
+          autoComplete="new-password"
+          leftIcon={<LockClosedIcon className="h-5 w-5 text-gray-400" />}
+          error={errors.confirmPassword?.message}
+          {...register('confirmPassword')}
+        />
+
+        <Button
+          type="submit"
+          variant="primary"
+          fullWidth
+          size="lg"
+          isLoading={isSubmitting}
+        >
+          {t('auth.resetPassword')}
+        </Button>
+      </form>
+    </div>
+  );
+};
+
+export default ResetPassword;
+
+=== FICHIER: frontend\src\pages\auth\Login.tsx ===
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline';
+
+import { useAuth } from '../../context/AuthContext';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+
+const Login: React.FC = () => {
+  const { t } = useTranslation();
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // Define validation schema
+  const loginSchema = z.object({
+    email: z.string().email(t('common.invalidEmail')),
+    password: z.string().min(1, t('common.required')),
+  });
+
+  type LoginFormData = z.infer<typeof loginSchema>;
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      setApiError(null);
+      await login(data.email, data.password);
+      navigate('/app');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setApiError(
+        error.response?.data?.message || 'Une erreur est survenue lors de la connexion'
+      );
+    }
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">
+        {t('auth.loginTitle')}
+      </h2>
+
+      {apiError && (
+        <div className="mb-4 p-3 text-sm text-red-700 bg-red-100 rounded-md">
+          {apiError}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <Input
+          label={t('common.email')}
+          type="email"
+          autoComplete="email"
+          leftIcon={<EnvelopeIcon className="h-5 w-5 text-gray-400" />}
+          error={errors.email?.message}
+          {...register('email')}
+        />
+
+        <Input
+          label={t('common.password')}
+          type="password"
+          autoComplete="current-password"
+          leftIcon={<LockClosedIcon className="h-5 w-5 text-gray-400" />}
+          error={errors.password?.message}
+          {...register('password')}
+        />
+
+        <div className="flex items-center justify-between">
+          <div className="text-sm">
+            <Link
+              to="/forgot-password"
+              className="font-medium text-primary-600 hover:text-primary-500"
+            >
+              {t('auth.forgotPassword')}
+            </Link>
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          variant="primary"
+          fullWidth
+          size="lg"
+          isLoading={isSubmitting}
+        >
+          {t('common.login')}
+        </Button>
+      </form>
+
+      <div className="mt-6 text-center">
+        <p className="text-sm text-gray-600">
+          {t('auth.noAccount')}{' '}
+          <Link to="/register" className="font-medium text-primary-600 hover:text-primary-500">
+            {t('auth.createAccount')}
+          </Link>
+        </p>
+      </div>
+      </div>
+    );
+};
+
+export default Login;
+
+=== FICHIER: frontend\src\pages\auth\Register.tsx ===
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  EnvelopeIcon,
+  LockClosedIcon,
+  UserIcon,
+  BuildingOfficeIcon,
+} from '@heroicons/react/24/outline';
+
+import { useAuth } from '../../context/AuthContext';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+
+const Register: React.FC = () => {
+  const { t } = useTranslation();
+  const { register: registerUser } = useAuth();
+  const navigate = useNavigate();
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<boolean>(false);
+
+  // Define validation schema
+  const registerSchema = z.object({
+    firstName: z.string().min(1, t('common.required')),
+    lastName: z.string().min(1, t('common.required')),
+    email: z.string().email(t('common.invalidEmail')),
+    password: z.string().min(8, t('common.passwordMinLength')),
+    companyName: z.string().min(1, t('common.required')),
+    terms: z.literal(true, {
+      errorMap: () => ({ message: t('common.required') }),
+    }),
+  });
+
+  type RegisterFormData = z.infer<typeof registerSchema>;
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+  });
+
+  const onSubmit = async (data: RegisterFormData) => {
+    try {
+      setApiError(null);
+      await registerUser({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        password: data.password,
+        companyName: data.companyName,
+      });
+      setSuccess(true);
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      setApiError(
+        error.response?.data?.message || 'Une erreur est survenue lors de l\'inscription'
+      );
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="text-center">
+        <svg
+          className="mx-auto h-12 w-12 text-green-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M5 13l4 4L19 7"
+          ></path>
+        </svg>
+        <h2 className="mt-3 text-lg font-medium text-gray-900">
+          Inscription réussie !
+        </h2>
+        <p className="mt-2 text-sm text-gray-500">
+          Un email de confirmation a été envoyé à votre adresse email. Veuillez cliquer sur le lien
+          pour confirmer votre compte.
+        </p>
+        <div className="mt-5">
+          <Link
+            to="/login"
+            className="font-medium text-primary-600 hover:text-primary-500"
+          >
+            Retour à la page de connexion
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">
+        {t('auth.registerTitle')}
+      </h2>
+
+      {apiError && (
+        <div className="mb-4 p-3 text-sm text-red-700 bg-red-100 rounded-md">
+          {apiError}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Input
+            label={t('common.firstName')}
+            autoComplete="given-name"
+            leftIcon={<UserIcon className="h-5 w-5 text-gray-400" />}
+            error={errors.firstName?.message}
+            {...register('firstName')}
+          />
+
+          <Input
+            label={t('common.lastName')}
+            autoComplete="family-name"
+            leftIcon={<UserIcon className="h-5 w-5 text-gray-400" />}
+            error={errors.lastName?.message}
+            {...register('lastName')}
+          />
+        </div>
+
+        <Input
+          label={t('common.email')}
+          type="email"
+          autoComplete="email"
+          leftIcon={<EnvelopeIcon className="h-5 w-5 text-gray-400" />}
+          error={errors.email?.message}
+          {...register('email')}
+        />
+
+        <Input
+          label={t('common.password')}
+          type="password"
+          autoComplete="new-password"
+          leftIcon={<LockClosedIcon className="h-5 w-5 text-gray-400" />}
+          error={errors.password?.message}
+          helperText={t('common.passwordMinLength')}
+          {...register('password')}
+        />
+
+        <Input
+          label={t('common.companyName')}
+          leftIcon={<BuildingOfficeIcon className="h-5 w-5 text-gray-400" />}
+          error={errors.companyName?.message}
+          {...register('companyName')}
+        />
+
+        <div>
+          <div className="flex items-start">
+            <input
+              id="terms"
+              type="checkbox"
+              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              {...register('terms')}
+            />
+            <label htmlFor="terms" className="ml-2 block text-sm text-gray-600">
+              {t('auth.termsAgree')}
+            </label>
+          </div>
+          {errors.terms?.message && (
+            <p className="mt-1 text-sm text-red-600">{errors.terms.message}</p>
+          )}
+        </div>
+
+        <Button
+          type="submit"
+          variant="primary"
+          fullWidth
+          size="lg"
+          isLoading={isSubmitting}
+        >
+          {t('common.register')}
+        </Button>
+      </form>
+
+      <div className="mt-6 text-center">
+        <p className="text-sm text-gray-600">
+          {t('auth.alreadyHaveAccount')}{' '}
+          <Link to="/login" className="font-medium text-primary-600 hover:text-primary-500">
+            {t('common.login')}
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default Register;
+
+=== FICHIER: frontend\src\pages\auth\ResetPassword.tsx ===
+import React, { useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { LockClosedIcon } from '@heroicons/react/24/outline';
+import axios from 'axios';
+
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+
+const ResetPassword: React.FC = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
+  
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<boolean>(false);
+
+  // Define validation schema
+  const resetPasswordSchema = z
+    .object({
+      password: z.string().min(8, t('common.passwordMinLength')),
+      confirmPassword: z.string().min(8, t('common.passwordMinLength')),
+    })
+    .refine(data => data.password === data.confirmPassword, {
+      message: t('auth.passwordMatch'),
+      path: ['confirmPassword'],
+    });
+
+  type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+  });
+
+  const onSubmit = async (data: ResetPasswordFormData) => {
+    if (!token) {
+      setApiError('Token de réinitialisation manquant');
+      return;
+    }
+    
+    try {
+      setApiError(null);
+      await axios.post('/api/auth/reset-password/confirm', {
+        password: data.password,
+        token,
+      });
+      setSuccess(true);
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
+    } catch (error: any) {
+      console.error('Reset password confirmation error:', error);
+      setApiError(
+        error.response?.data?.message || 'Une erreur est survenue lors de la réinitialisation'
+      );
+    }
+  };
+
+  if (!token) {
+    return (
+      <div className="text-center">
+        <div className="rounded-md bg-yellow-50 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-yellow-400"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-yellow-800">
+                Lien de réinitialisation invalide. Veuillez demander un nouveau lien.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 text-center">
+            <Link to="/forgot-password" className="font-medium text-primary-600 hover:text-primary-500">
+              Demander un nouveau lien
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="text-center">
+        <svg
+          className="mx-auto h-12 w-12 text-green-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M5 13l4 4L19 7"
+          ></path>
+        </svg>
+        <h2 className="mt-3 text-lg font-medium text-gray-900">
+          Mot de passe réinitialisé !
+        </h2>
+        <p className="mt-2 text-sm text-gray-500">
+          Votre mot de passe a été réinitialisé avec succès. Vous allez être redirigé vers la page de connexion.
+        </p>
+        <div className="mt-5">
+          <Link
+            to="/login"
+            className="font-medium text-primary-600 hover:text-primary-500"
+          >
+            Aller à la page de connexion
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">
+        {t('auth.resetPassword')}
+      </h2>
+
+      {apiError && (
+        <div className="mb-4 p-3 text-sm text-red-700 bg-red-100 rounded-md">
+          {apiError}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <Input
+          label={t('common.password')}
+          type="password"
+          autoComplete="new-password"
+          leftIcon={<LockClosedIcon className="h-5 w-5 text-gray-400" />}
+          error={errors.password?.message}
+          helperText={t('common.passwordMinLength')}
+          {...register('password')}
+        />
+
+        <Input
+          label={t('auth.confirmPassword')}
+          type="password"
+          autoComplete="new-password"
+          leftIcon={<LockClosedIcon className="h-5 w-5 text-gray-400" />}
+          error={errors.confirmPassword?.message}
+          {...register('confirmPassword')}
+        />
+
+        <Button
+          type="submit"
+          variant="primary"
+          fullWidth
+          size="lg"
+          isLoading={isSubmitting}
+        >
+          {t('auth.resetPassword')}
+        </Button>
+      </form>
+    </div>
+  );
+};
+
+export default ResetPassword;
+
+
+=== DOSSIER: frontend\src\pages\candidates ===
+
+=== FICHIER: frontend\src\pages\candidates\CandidateDetail.tsx ===
+// Placeholder 
+
+
+=== FICHIER: frontend\src\pages\candidates\CandidateImport.tsx ===
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import {
+  ArrowLeftIcon,
+  DocumentArrowUpIcon,
+  XMarkIcon,
+  SparklesIcon,
+  DocumentTextIcon,
+  CloudArrowUpIcon,
+  ExclamationCircleIcon,
+  CheckCircleIcon,
+} from '@heroicons/react/24/outline';
+
+import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
+
+interface FileWithPreview extends File {
+  id: string;
+  preview?: string;
+}
+
+interface Job {
+  id: string;
+  title: string;
+}
+
+const CandidateImport: React.FC = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const preselectedJobId = searchParams.get('jobId');
+  
+  const [files, setFiles] = useState<FileWithPreview[]>([]);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [selectedJobId, setSelectedJobId] = useState<string>(preselectedJobId || '');
+  const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+
+  // Fetch available jobs on mount
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        // Mock data for demonstration
+        const mockJobs: Job[] = [
+          { id: '1', title: 'Développeur Full Stack' },
+          { id: '2', title: 'UX Designer Senior' },
+          { id: '3', title: 'Chef de Projet IT' },
+          { id: '4', title: 'Développeur Frontend React' },
+          { id: '5', title: 'DevOps Engineer' },
+        ];
+        
+        // Simulate API delay
+        setTimeout(() => {
+          setJobs(mockJobs);
+          
+          // If there's a preselected job and it exists in our list, select it
+          if (preselectedJobId) {
+            const jobExists = mockJobs.some(job => job.id === preselectedJobId);
+            if (jobExists) {
+              setSelectedJobId(preselectedJobId);
+            } else {
+              setError('L\'offre d\'emploi spécifiée n\'existe pas.');
+            }
+          }
+        }, 500);
+      } catch (err) {
+        console.error('Error fetching jobs:', err);
+        setError('Impossible de charger les offres d\'emploi.');
+      }
+    };
+
+    fetchJobs();
+  }, [preselectedJobId]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files).map(file => ({
+        ...file,
+        id: Math.random().toString(36).substring(2, 9),
+      })) as FileWithPreview[];
+      
+      setFiles(prevFiles => [...prevFiles, ...newFiles]);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    
+    if (e.dataTransfer.files) {
+      const newFiles = Array.from(e.dataTransfer.files).map(file => ({
+        ...file,
+        id: Math.random().toString(36).substring(2, 9),
+      })) as FileWithPreview[];
+      
+      setFiles(prevFiles => [...prevFiles, ...newFiles]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const removeFile = (id: string) => {
+    setFiles(files.filter(file => file.id !== id));
+  };
+
+  const handleUploadAndAnalyze = async () => {
+    if (!selectedJobId) {
+      setError('Veuillez sélectionner une offre d\'emploi.');
+      return;
+    }
+    
+    if (files.length === 0) {
+      setError('Veuillez ajouter au moins un fichier.');
+      return;
+    }
+    
+    setError(null);
+    setIsUploading(true);
+    setUploadProgress(0);
+    
+    try {
+      // Simulate upload progress
+      const totalSteps = 10;
+      for (let i = 1; i <= totalSteps; i++) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        setUploadProgress(Math.floor((i / totalSteps) * 100));
+      }
+      
+      // Simulate API call for file upload
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setIsUploading(false);
+      setIsAnalyzing(true);
+      
+      // Simulate AI analysis
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setIsAnalyzing(false);
+      setIsSuccess(true);
+      
+      // Redirect to candidates list after success
+      setTimeout(() => {
+        navigate(`/app/candidates?jobId=${selectedJobId}`);
+      }, 2000);
+    } catch (err) {
+      console.error('Error uploading files:', err);
+      setError('Une erreur est survenue lors du téléchargement des fichiers.');
+      setIsUploading(false);
+      setIsAnalyzing(false);
+    }
+  };
+
+  const isValidFile = (file: File) => {
+    const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    return validTypes.includes(file.type);
+  };
+
+  const getFileIcon = (file: File) => {
+    if (file.type === 'application/pdf') {
+      return (
+        <div className="bg-red-100 p-2 rounded-md">
+          <DocumentTextIcon className="h-6 w-6 text-red-600" />
+        </div>
+      );
+    }
+    return (
+      <div className="bg-blue-100 p-2 rounded-md">
+        <DocumentTextIcon className="h-6 w-6 text-blue-600" />
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <div className="mb-6 flex items-center">
+        <button
+          onClick={() => navigate(-1)}
+          className="mr-4 p-1 rounded-full hover:bg-gray-100"
+        >
+          <ArrowLeftIcon className="h-5 w-5 text-gray-500" />
+        </button>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {t('candidates.import')}
+        </h1>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 space-y-6">
+          {/* Job Selection */}
+          <Card padding="normal">
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-gray-700">
+                {t('candidates.selectJob')}
+              </label>
+              <select
+                value={selectedJobId}
+                onChange={(e) => setSelectedJobId(e.target.value)}
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                disabled={isUploading || isAnalyzing || isSuccess}
+              >
+                <option value="">Sélectionner une offre</option>
+                {jobs.map((job) => (
+                  <option key={job.id} value={job.id}>
+                    {job.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </Card>
+
+          {/* File Upload */}
+          {!isSuccess && (
+            <Card padding="normal">
+              <div
+                className={`border-2 border-dashed rounded-lg p-6 
+                  ${error ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-primary-400 bg-gray-50 hover:bg-primary-50'}
+                  transition-colors duration-150 text-center
+                `}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+              >
+                <div className="space-y-3">
+                  <div className="mx-auto flex justify-center">
+                    <CloudArrowUpIcon className="h-12 w-12 text-gray-400" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-900">
+                      {t('candidates.uploadInstructions')}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {t('candidates.fileTypes')}
+                    </p>
+                  </div>
+                  <div>
+                    <input
+                      id="file-upload"
+                      type="file"
+                      className="sr-only"
+                      multiple
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleFileChange}
+                      disabled={isUploading || isAnalyzing || isSuccess}
+                    />
+                    <label
+                      htmlFor="file-upload"
+                      className="relative cursor-pointer rounded-md font-medium text-primary-600 hover:text-primary-700 focus-within:outline-none"
+                    >
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('file-upload')?.click()}
+                        disabled={isUploading || isAnalyzing || isSuccess}
+                      >
+                        Sélectionner des fichiers
+                      </Button>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <div className="mt-3 text-sm text-red-600 flex items-center">
+                  <ExclamationCircleIcon className="h-5 w-5 mr-1" />
+                  {error}
+                </div>
+              )}
+
+              {/* File List */}
+              {files.length > 0 && (
+                <div className="mt-4 space-y-3">
+                  <h3 className="text-sm font-medium text-gray-700">
+                    Fichiers sélectionnés ({files.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {files.map((file) => (
+                      <div
+                        key={file.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
+                      >
+                        <div className="flex items-center">
+                          {getFileIcon(file)}
+                          <div className="ml-3">
+                            <p className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                              {file.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {(file.size / 1024).toFixed(1)} KB
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeFile(file.id)}
+                          className="text-gray-400 hover:text-gray-600"
+                          disabled={isUploading || isAnalyzing}
+                        >
+                          <XMarkIcon className="h-5 w-5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {/* Success Message */}
+          {isSuccess && (
+            <Card padding="normal">
+              <div className="text-center py-6">
+                <CheckCircleIcon className="h-12 w-12 text-green-500 mx-auto" />
+                <h3 className="mt-2 text-lg font-medium text-gray-900">
+                  Analyse terminée avec succès !
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Les CV ont été analysés et les candidats ajoutés à l'offre sélectionnée.
+                </p>
+                <div className="mt-6">
+                  <Button
+                    variant="primary"
+                    onClick={() => navigate(`/app/candidates?jobId=${selectedJobId}`)}
+                  >
+                    Voir les candidats
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
+
+        <div className="md:col-span-1 space-y-6">
+          {/* Upload Status */}
+          <Card title="Statut" padding="normal">
+            <div className="space-y-6">
+              {isUploading ? (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Upload en cours...</span>
+                    <span className="text-sm font-medium">{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div
+                      className="bg-primary-600 h-2.5 rounded-full"
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ) : isAnalyzing ? (
+                <div className="flex items-center justify-center py-6">
+                  <div className="animate-pulse flex flex-col items-center">
+                    <SparklesIcon className="h-10 w-10 text-primary-600 mb-3" />
+                    <span className="text-sm font-medium text-gray-700">
+                      Analyse des CV en cours...
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600">
+                    Sélectionnez une offre d'emploi et importez des CV pour les analyser automatiquement.
+                  </p>
+                  <div className="flex items-center pt-3 border-t border-gray-200">
+                    <DocumentArrowUpIcon className="h-5 w-5 text-gray-400 mr-2" />
+                    <span className="text-sm">{files.length} fichiers sélectionnés</span>
+                  </div>
+                </div>
+              )}
+
+              {!isSuccess && (
+                <Button
+                  variant="primary"
+                  fullWidth
+                  size="lg"
+                  leftIcon={<SparklesIcon className="h-5 w-5" />}
+                  onClick={handleUploadAndAnalyze}
+                  isLoading={isUploading || isAnalyzing}
+                  disabled={files.length === 0 || !selectedJobId || isUploading || isAnalyzing}
+                >
+                  {t('candidates.analyze')}
+                </Button>
+              )}
+            </div>
+          </Card>
+
+          {/* How It Works */}
+          <Card title="Comment ça marche" padding="normal">
+            <div className="space-y-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary-100 text-primary-600">
+                    1
+                  </div>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-900">Sélectionnez une offre</p>
+                  <p className="text-xs text-gray-500">Choisissez pour quelle offre vous importez des CV</p>
+                </div>
+              </div>
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary-100 text-primary-600">
+                    2
+                  </div>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-900">Importez des CV</p>
+                  <p className="text-xs text-gray-500">Formats acceptés : PDF, DOC, DOCX</p>
+                </div>
+              </div>
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary-100 text-primary-600">
+                    3
+                  </div>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-900">Analyse automatique</p>
+                  <p className="text-xs text-gray-500">
+                    Notre IA analyse les CV et extrait les informations pertinentes
+                  </p>
+                </div>
+              </div>
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary-100 text-primary-600">
+                    4
+                  </div>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-900">Évaluez les candidats</p>
+                  <p className="text-xs text-gray-500">
+                    Accédez aux profils triés par pertinence pour votre offre
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CandidateImport;
+
+=== FICHIER: frontend\src\pages\candidates\CandidatesList.tsx ===
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import {
+  DocumentArrowUpIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  AdjustmentsHorizontalIcon,
+  UserCircleIcon,
+  EllipsisVerticalIcon,
+} from '@heroicons/react/24/outline';
+
+import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
+import Badge from '../../components/ui/Badge';
+import { useAuth } from '../../context/AuthContext';
+
+// Types
+interface Candidate {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  skills: string[];
+  experience: number;
+  matchingScore: number;
+  status: string;
+  lastActivity: string;
+  resumeUrl: string;
+  job: {
+    id: string;
+    title: string;
+  };
+}
+
+interface Job {
+  id: string;
+  title: string;
+}
+
+const BriefcaseIcon = () => {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0" />
+    </svg>
+  )
+}
+
+const CandidatesList: React.FC = () => {
+  const { t } = useTranslation();
+  const { token } = useAuth();
+  const [searchParams] = useSearchParams();
+  const jobIdFilter = searchParams.get('jobId');
+
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedJobId, setSelectedJobId] = useState<string>(jobIdFilter || '');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('matchingScore');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [limit] = useState<number>(10);
+
+  // API base URL
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+  // Headers for API calls
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  };
+
+  // Fetch jobs and candidates data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Update job ID filter from URL if present
+        if (jobIdFilter) {
+          setSelectedJobId(jobIdFilter);
+        }
+        
+        // Fetch jobs first
+        const jobsResponse = await axios.get(`${API_URL}/jobs`, { headers });
+        setJobs(jobsResponse.data.data);
+        
+        // Prepare query parameters for candidates
+        const params: any = {
+          page,
+          limit,
+          sort: sortBy,
+          order: sortDirection
+        };
+        
+        // Add filters if present
+        if (selectedJobId) {
+          params.jobId = selectedJobId;
+        }
+        
+        if (statusFilter !== 'all') {
+          params.status = statusFilter;
+        }
+        
+        if (searchQuery) {
+          params.search = searchQuery;
+        }
+        
+        // Fetch candidates with filters
+        const candidatesResponse = await axios.get(`${API_URL}/candidates`, { 
+          headers,
+          params
+        });
+        
+        setCandidates(candidatesResponse.data.data);
+        setTotalPages(candidatesResponse.data.totalPages || 1);
+        setIsLoading(false);
+      } catch (err: any) {
+        console.error('Error fetching data:', err);
+        setError(err.response?.data?.error || 'Une erreur est survenue lors de la récupération des données');
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [API_URL, headers, jobIdFilter, page, limit, selectedJobId, statusFilter, sortBy, sortDirection]);
+
+  // Apply search filter locally (for immediate feedback)
+  // The actual filtering will happen on the server on the next fetch
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  // Apply job filter and reset page
+  const handleJobFilter = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedJobId(e.target.value);
+    setPage(1);
+  };
+
+  // Apply status filter and reset page
+  const handleStatusFilter = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setStatusFilter(e.target.value);
+    setPage(1);
+  };
+
+  // Handle sorting
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      // Toggle direction if clicking on the same field
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new field and default to descending for matching score, ascending for others
+      setSortBy(field);
+      setSortDirection(field === 'matchingScore' ? 'desc' : 'asc');
+    }
+    setPage(1);
+  };
+
+  // Handle status change for a candidate
+  const handleStatusChange = async (candidateId: string, newStatus: string) => {
+    try {
+      await axios.post(`${API_URL}/candidates/${candidateId}/status`, {
+        status: newStatus
+      }, { headers });
+      
+      // Update candidate in local state
+      setCandidates(candidates.map(candidate => 
+        candidate.id === candidateId 
+          ? { ...candidate, status: newStatus } 
+          : candidate
+      ));
+    } catch (err: any) {
+      console.error('Error updating candidate status:', err);
+      alert(err.response?.data?.error || 'Une erreur est survenue lors de la mise à jour du statut');
+    }
+  };
+
+  // Helper functions for UI
+  const getStatusClass = (status: string) => {
+    switch (status) {
+      case 'new':
+        return 'info';
+      case 'toContact':
+        return 'warning';
+      case 'interview':
+        return 'primary';
+      case 'hired':
+        return 'success';
+      case 'rejected':
+        return 'danger';
+      default:
+        return 'default';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('fr-FR').format(date);
+  };
+
+  // Loading state
+  if (isLoading && page === 1) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="animate-pulse text-gray-500">
+          {t('common.loading')}
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="bg-red-50 p-4 rounded-md">
+        <p className="text-red-700">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-2 text-sm font-medium text-red-700 hover:text-red-900"
+        >
+          Réessayer
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4 sm:mb-0">
+          {t('candidates.title')}
+          {selectedJobId && jobs.find(job => job.id === selectedJobId) && (
+            <span className="text-lg font-normal text-gray-600 ml-2">
+              • {jobs.find(job => job.id === selectedJobId)?.title}
+            </span>
+          )}
+        </h1>
+        <Link to="/app/candidates/import">
+          <Button
+            variant="primary"
+            leftIcon={<DocumentArrowUpIcon className="h-5 w-5" />}
+          >
+            {t('candidates.import')}
+          </Button>
+        </Link>
+      </div>
+
+      {/* Filters and Search */}
+      <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder={t('common.search')}
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            value={searchQuery}
+            onChange={handleSearch}
+            onKeyPress={(e) => e.key === 'Enter' && setPage(1)}
+          />
+        </div>
+        
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <FunnelIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <select
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            value={statusFilter}
+            onChange={handleStatusFilter}
+          >
+            <option value="all">Tous les statuts</option>
+            <option value="new">{t('candidates.statuses.new')}</option>
+            <option value="toContact">{t('candidates.statuses.toContact')}</option>
+            <option value="interview">{t('candidates.statuses.interview')}</option>
+            <option value="hired">{t('candidates.statuses.hired')}</option>
+            <option value="rejected">{t('candidates.statuses.rejected')}</option>
+          </select>
+        </div>
+        
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <BriefcaseIcon />
+          </div>
+          <select
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            value={selectedJobId}
+            onChange={handleJobFilter}
+          >
+            <option value="">Toutes les offres</option>
+            {jobs.map((job) => (
+              <option key={job.id} value={job.id}>
+                {job.title}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <AdjustmentsHorizontalIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <select
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            value={sortBy}
+            onChange={(e) => handleSort(e.target.value)}
+          >
+            <option value="matchingScore">Trier par score</option>
+            <option value="name">Trier par nom</option>
+            <option value="experience">Trier par expérience</option>
+            <option value="lastActivity">Trier par date</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Candidates List */}
+      <Card padding="none">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th 
+                  scope="col" 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort('name')}
+                >
+                  <div className="flex items-center">
+                    {t('candidates.name')}
+                    {sortBy === 'name' && (
+                      <span className="ml-1">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('jobs.jobTitle')}
+                </th>
+                <th 
+                  scope="col" 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort('matchingScore')}
+                >
+                  <div className="flex items-center">
+                    {t('candidates.matchingScore')}
+                    {sortBy === 'matchingScore' && (
+                      <span className="ml-1">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+                <th 
+                  scope="col" 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort('experience')}
+                >
+                  <div className="flex items-center">
+                    {t('candidates.experience')}
+                    {sortBy === 'experience' && (
+                      <span className="ml-1">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('candidates.skills')}
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('candidates.status')}
+                </th>
+                <th 
+                  scope="col" 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort('lastActivity')}
+                >
+                  <div className="flex items-center">
+                    Activité
+                    {sortBy === 'lastActivity' && (
+                      <span className="ml-1">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+                <th scope="col" className="relative px-6 py-3">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {candidates.length > 0 ? (
+                candidates.map((candidate) => (
+                  <tr key={candidate.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <UserCircleIcon className="h-10 w-10 text-gray-400" />
+                        </div>
+                        <div className="ml-4">
+                          <Link 
+                            to={`/app/candidates/${candidate.id}`}
+                            className="text-sm font-medium text-primary-600 hover:text-primary-900"
+                          >
+                            {candidate.name}
+                          </Link>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {candidate.job.title}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <span
+                          className={`inline-block w-16 h-2 rounded-full ${
+                            candidate.matchingScore >= 80
+                              ? 'bg-green-500'
+                              : candidate.matchingScore >= 60
+                              ? 'bg-yellow-500'
+                              : 'bg-red-500'
+                          }`}
+                        ></span>
+                        <span className="ml-2 text-sm text-gray-700">
+                          {candidate.matchingScore}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {candidate.experience} {candidate.experience > 1 ? 'ans' : 'an'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-wrap gap-1">
+                        {candidate.skills.slice(0, 3).map((skill, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                        {candidate.skills.length > 3 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                            +{candidate.skills.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="relative">
+                        <select
+                          className={`w-full text-xs font-medium rounded-full py-1 pl-2 pr-8 border-0 focus:ring-2 focus:outline-none
+                            ${candidate.status === 'new' ? 'bg-blue-100 text-blue-800' : ''}
+                            ${candidate.status === 'toContact' ? 'bg-yellow-100 text-yellow-800' : ''}
+                            ${candidate.status === 'interview' ? 'bg-purple-100 text-purple-800' : ''}
+                            ${candidate.status === 'hired' ? 'bg-green-100 text-green-800' : ''}
+                            ${candidate.status === 'rejected' ? 'bg-red-100 text-red-800' : ''}
+                          `}
+                          value={candidate.status}
+                          onChange={(e) => handleStatusChange(candidate.id, e.target.value)}
+                        >
+                          <option value="new">{t('candidates.statuses.new')}</option>
+                          <option value="toContact">{t('candidates.statuses.toContact')}</option>
+                          <option value="interview">{t('candidates.statuses.interview')}</option>
+                          <option value="hired">{t('candidates.statuses.hired')}</option>
+                          <option value="rejected">{t('candidates.statuses.rejected')}</option>
+                        </select>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {formatDate(candidate.lastActivity)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="relative inline-block text-left">
+                        <button className="p-1 rounded-full hover:bg-gray-100">
+                          <EllipsisVerticalIcon className="h-5 w-5 text-gray-400" />
+                        </button>
+
+                        {/* Dropdown menu would go here */}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={8} className="px-6 py-10 text-center text-gray-500">
+                    {searchQuery || selectedJobId || statusFilter !== 'all' 
+                      ? 'Aucun candidat ne correspond à vos filtres' 
+                      : 'Aucun candidat pour le moment'}
+                    <div className="mt-2">
+                      <Link to="/app/candidates/import" className="text-primary-600 hover:text-primary-900">
+                        Importer des CV
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Page <span className="font-medium">{page}</span> sur{' '}
+                  <span className="font-medium">{totalPages}</span>
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <button
+                    onClick={() => setPage(Math.max(1, page - 1))}
+                    disabled={page === 1}
+                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+                      page === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="sr-only">Précédent</span>
+                    &laquo;
+                  </button>
+                  
+                  {/* Page numbers */}
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    
+                    if (totalPages <= 5) {
+                      // Show all pages if 5 or fewer
+                      pageNum = i + 1;
+                    } else if (page <= 3) {
+                      // Near the start
+                      pageNum = i + 1;
+                    } else if (page >= totalPages - 2) {
+                      // Near the end
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      // In the middle
+                      pageNum = page - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPage(pageNum)}
+                        className={`relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium ${
+                          page === pageNum
+                            ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                            : 'text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  
+                  <button
+                    onClick={() => setPage(Math.min(totalPages, page + 1))}
+                    disabled={page === totalPages}
+                    className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+                      page === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="sr-only">Suivant</span>
+                    &raquo;
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+};
+
+export default CandidatesList;
+
+
+=== DOSSIER: frontend\src\pages\dashboard ===
+
+=== FICHIER: frontend\src\pages\dashboard\Dashboard.tsx ===
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import {
+  ArrowUpIcon,
+  ArrowDownIcon,
+  BriefcaseIcon,
+  DocumentTextIcon,
+  UserGroupIcon,
+  CalendarDaysIcon,
+  PlusIcon,
+} from '@heroicons/react/24/outline';
+import { useAuth } from '../../context/AuthContext';
+import Card from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
+import Badge from '../../components/ui/Badge';
+import axios from 'axios';
+
+// Temporary mock data - Would be fetched from API in production
+interface DashboardStats {
+  activeJobs: number;
+  candidatesAnalyzed: number;
+  matchingRate: number;
+  interviews: number;
+  recentCandidates: Array<{
+    id: string;
+    name: string;
+    jobTitle: string;
+    matchingScore: number;
+    status: string;
+  }>;
+  tasks: Array<{
+    id: string;
+    title: string;
+    type: string;
+    date: string;
+  }>;
+}
+
+const Dashboard: React.FC = () => {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // In a real application, fetch data from the backend
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // This would be an actual API call in production
+        // const response = await axios.get('/api/analytics/dashboard');
+        // setStats(response.data);
+        
+        // Mock data for demonstration
+        const mockData: DashboardStats = {
+          activeJobs: 5,
+          candidatesAnalyzed: 43,
+          matchingRate: 68,
+          interviews: 8,
+          recentCandidates: [
+            {
+              id: '1',
+              name: 'Sophie Martin',
+              jobTitle: 'Développeur Full Stack',
+              matchingScore: 92,
+              status: 'interview',
+            },
+            {
+              id: '2',
+              name: 'Lucas Dubois',
+              jobTitle: 'Chef de Projet IT',
+              matchingScore: 78,
+              status: 'toContact',
+            },
+            {
+              id: '3',
+              name: 'Emma Bernard',
+              jobTitle: 'UX Designer',
+              matchingScore: 85,
+              status: 'new',
+            },
+          ],
+          tasks: [
+            {
+              id: '1',
+              title: 'Contacter Lucas Dubois',
+              type: 'contact',
+              date: '2025-04-21',
+            },
+            {
+              id: '2',
+              title: 'Entretien avec Sophie Martin',
+              type: 'interview',
+              date: '2025-04-22',
+            },
+            {
+              id: '3',
+              title: "Analyser CV pour l'offre Designer UX",
+              type: 'review',
+              date: '2025-04-20',
+            },
+          ],
+        };
+        
+        // Simulate API delay
+        setTimeout(() => {
+          setStats(mockData);
+          setIsLoading(false);
+        }, 1000);
+      } catch (err: any) {
+        console.error('Error fetching dashboard data:', err);
+        setError(err.message || 'Une erreur est survenue');
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  const getStatusClass = (status: string) => {
+    switch (status) {
+      case 'new':
+        return 'info';
+      case 'toContact':
+        return 'warning';
+      case 'interview':
+        return 'primary';
+      case 'hired':
+        return 'success';
+      case 'rejected':
+        return 'danger';
+      default:
+        return 'default';
+    }
+  };
+
+  const getTaskIcon = (type: string) => {
+    switch (type) {
+      case 'contact':
+        return <UserGroupIcon className="h-5 w-5 text-blue-500" />;
+      case 'interview':
+        return <CalendarDaysIcon className="h-5 w-5 text-purple-500" />;
+      case 'review':
+        return <DocumentTextIcon className="h-5 w-5 text-yellow-500" />;
+      default:
+        return <BriefcaseIcon className="h-5 w-5 text-gray-500" />;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="animate-pulse text-gray-500">
+          {t('common.loading')}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 p-4 rounded-md">
+        <p className="text-red-700">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-2 text-sm font-medium text-red-700 hover:text-red-900"
+        >
+          Réessayer
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">
+          {t('dashboard.welcome')}, {user?.firstName}
+        </h1>
+        <p className="text-gray-600 mt-1">{t('dashboard.summary')}</p>
+      </div>
+
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Card className="flex flex-col" padding="normal">
+          <div className="flex items-center justify-between">
+            <div className="text-gray-500">{t('dashboard.activeJobs')}</div>
+            <div className="p-2 bg-blue-100 rounded-md">
+              <BriefcaseIcon className="h-6 w-6 text-blue-700" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-end justify-between">
+            <div className="text-3xl font-semibold">{stats?.activeJobs}</div>
+            <div className="flex items-center text-sm text-green-600">
+              <ArrowUpIcon className="h-4 w-4 mr-1" />
+              <span>20%</span>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="flex flex-col" padding="normal">
+          <div className="flex items-center justify-between">
+            <div className="text-gray-500">{t('dashboard.candidatesAnalyzed')}</div>
+            <div className="p-2 bg-purple-100 rounded-md">
+              <DocumentTextIcon className="h-6 w-6 text-purple-700" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-end justify-between">
+            <div className="text-3xl font-semibold">{stats?.candidatesAnalyzed}</div>
+            <div className="flex items-center text-sm text-green-600">
+              <ArrowUpIcon className="h-4 w-4 mr-1" />
+              <span>12%</span>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="flex flex-col" padding="normal">
+          <div className="flex items-center justify-between">
+            <div className="text-gray-500">{t('dashboard.matchingRate')}</div>
+            <div className="p-2 bg-yellow-100 rounded-md">
+              <UserGroupIcon className="h-6 w-6 text-yellow-700" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-end justify-between">
+            <div className="text-3xl font-semibold">{stats?.matchingRate}%</div>
+            <div className="flex items-center text-sm text-red-600">
+              <ArrowDownIcon className="h-4 w-4 mr-1" />
+              <span>3%</span>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="flex flex-col" padding="normal">
+          <div className="flex items-center justify-between">
+            <div className="text-gray-500">{t('dashboard.interviews')}</div>
+            <div className="p-2 bg-green-100 rounded-md">
+              <CalendarDaysIcon className="h-6 w-6 text-green-700" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-end justify-between">
+            <div className="text-3xl font-semibold">{stats?.interviews}</div>
+            <div className="flex items-center text-sm text-green-600">
+              <ArrowUpIcon className="h-4 w-4 mr-1" />
+              <span>8%</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Create Job Button */}
+        <div className="lg:col-span-3">
+          <Link to="/app/jobs/create">
+            <Button
+              variant="primary"
+              size="lg"
+              leftIcon={<PlusIcon className="h-5 w-5" />}
+            >
+              {t('dashboard.createJob')}
+            </Button>
+          </Link>
+        </div>
+
+        {/* Recent Candidates */}
+        <div className="lg:col-span-2">
+          <Card
+            title={t('dashboard.recentCandidates')}
+            actions={
+              <Link
+                to="/app/candidates"
+                className="text-sm font-medium text-primary-600 hover:text-primary-900"
+              >
+                {t('dashboard.viewAllCandidates')}
+              </Link>
+            }
+            padding="none"
+          >
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      {t('candidates.name')}
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      {t('jobs.jobTitle')}
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      {t('candidates.matchingScore')}
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      {t('candidates.status')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {stats?.recentCandidates.map((candidate) => (
+                    <tr key={candidate.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Link
+                          to={`/app/candidates/${candidate.id}`}
+                          className="text-primary-600 hover:text-primary-900"
+                        >
+                          {candidate.name}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {candidate.jobTitle}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <span
+                            className={`inline-block w-16 h-2 rounded-full ${
+                              candidate.matchingScore >= 80
+                                ? 'bg-green-500'
+                                : candidate.matchingScore >= 60
+                                ? 'bg-yellow-500'
+                                : 'bg-red-500'
+                            }`}
+                          ></span>
+                          <span className="ml-2 text-sm text-gray-700">
+                            {candidate.matchingScore}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge
+                          variant={getStatusClass(candidate.status)}
+                          size="sm"
+                          rounded
+                        >
+                          {t(`candidates.statuses.${candidate.status}`)}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
+
+        {/* Tasks */}
+        <div className="lg:col-span-1">
+          <Card title={t('dashboard.tasksTitle')} padding="normal">
+            <div className="space-y-4">
+              {stats?.tasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-start p-3 bg-gray-50 rounded-lg"
+                >
+                  <div className="mr-3 mt-0.5">{getTaskIcon(task.type)}</div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {task.title}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(task.date).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+      </div>
+          );
+        };
+        
+export default Dashboard;
+
+
+=== DOSSIER: frontend\src\pages\error ===
+
+=== FICHIER: frontend\src\pages\error\NotFound.tsx ===
+// Placeholder 
+
+
+
+=== DOSSIER: frontend\src\pages\interviews ===
+
+=== FICHIER: frontend\src\pages\interviews\InterviewCreate.tsx ===
+// Placeholder 
+
+
+=== FICHIER: frontend\src\pages\interviews\InterviewDetail.tsx ===
+// Placeholder 
+
+
+=== FICHIER: frontend\src\pages\interviews\InterviewsList.tsx ===
+// Placeholder 
+
+
+
+=== DOSSIER: frontend\src\pages\jobs ===
+
+=== FICHIER: frontend\src\pages\jobs\JobCreate.tsx ===
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useForm, Controller } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  ArrowLeftIcon,
+  TagIcon,
+  PlusIcon,
+  TrashIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline';
+
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import Card from '../../components/ui/Card';
+
+const JobCreate: React.FC = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+  const [skills, setSkills] = useState<string[]>([]);
+  const [newSkill, setNewSkill] = useState('');
+  const [pipelineStages, setPipelineStages] = useState([
+    'À contacter',
+    'Entretien RH',
+    'Test technique',
+    'Entretien final',
+    'Proposition',
+    'Embauché',
+  ]);
+  const [newStage, setNewStage] = useState('');
+
+  // Define validation schema
+  const jobFormSchema = z.object({
+    title: z.string().min(1, t('common.required')),
+    location: z.string().min(1, t('common.required')),
+    contractType: z.string().min(1, t('common.required')),
+    salary: z.string().optional(),
+    experienceLevel: z.string().min(1, t('common.required')),
+    startDate: z.string().optional(),
+    languages: z.string().optional(),
+    description: z.string().min(1, t('common.required')),
+  });
+
+  type JobFormData = z.infer<typeof jobFormSchema>;
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm<JobFormData>({
+    resolver: zodResolver(jobFormSchema),
+    defaultValues: {
+      contractType: 'cdi',
+      experienceLevel: 'intermediate',
+    },
+  });
+
+  const handleAddSkill = () => {
+    if (newSkill.trim() && !skills.includes(newSkill.trim())) {
+      setSkills([...skills, newSkill.trim()]);
+      setNewSkill('');
+    }
+  };
+
+  const handleRemoveSkill = (skill: string) => {
+    setSkills(skills.filter((s) => s !== skill));
+  };
+
+  const handleAddPipelineStage = () => {
+    if (newStage.trim() && !pipelineStages.includes(newStage.trim())) {
+      setPipelineStages([...pipelineStages, newStage.trim()]);
+      setNewStage('');
+    }
+  };
+
+  const handleRemovePipelineStage = (stage: string) => {
+    setPipelineStages(pipelineStages.filter((s) => s !== stage));
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent, action: () => void) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      action();
+    }
+  };
+
+  const onSubmit = async (data: JobFormData) => {
+    if (skills.length === 0) {
+      alert('Veuillez ajouter au moins une compétence requise.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      
+      // Prepare the full data to send to API
+      const jobData = {
+        ...data,
+        skills,
+        pipelineStages,
+        status: 'active', // Default status for new jobs
+      };
+      
+      console.log('Creating job with data:', jobData);
+      
+      // In a real application, this would be an API call
+      // await axios.post('/api/jobs', jobData);
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Redirect to jobs list page
+      navigate('/app/jobs');
+    } catch (error) {
+      console.error('Error creating job:', error);
+      alert('Une erreur est survenue lors de la création de l\'offre.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="mb-6 flex items-center">
+        <button
+          onClick={() => navigate('/app/jobs')}
+          className="mr-4 p-1 rounded-full hover:bg-gray-100"
+        >
+          <ArrowLeftIcon className="h-5 w-5 text-gray-500" />
+        </button>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {t('jobs.createTitle')}
+        </h1>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Main job details */}
+          <div className="md:col-span-2 space-y-6">
+            <Card title="Informations générales" padding="normal">
+              <div className="space-y-4">
+                <Input
+                  label={t('jobs.jobTitle')}
+                  error={errors.title?.message}
+                  {...register('title')}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label={t('jobs.location')}
+                    error={errors.location?.message}
+                    placeholder="Paris, France ou Télétravail"
+                    {...register('location')}
+                  />
+
+                  <div>
+                    <label htmlFor="contractType" className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('jobs.contract')}
+                    </label>
+                    <select
+                      id="contractType"
+                      className={`block w-full rounded-md sm:text-sm py-2 px-3 border-gray-300 focus:ring-primary-500 focus:border-primary-500 ${
+                        errors.contractType ? 'border-red-300' : ''
+                      }`}
+                      {...register('contractType')}
+                    >
+                      <option value="cdi">{t('jobs.contracts.cdi')}</option>
+                      <option value="cdd">{t('jobs.contracts.cdd')}</option>
+                      <option value="internship">{t('jobs.contracts.internship')}</option>
+                      <option value="freelance">{t('jobs.contracts.freelance')}</option>
+                      <option value="apprenticeship">{t('jobs.contracts.apprenticeship')}</option>
+                    </select>
+                    {errors.contractType && (
+                      <p className="mt-1 text-sm text-red-600">{errors.contractType.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label={t('jobs.salary')}
+                    placeholder="Optionnel, ex: 45-55k€ annuel"
+                    {...register('salary')}
+                  />
+
+                  <div>
+                    <label htmlFor="experienceLevel" className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('jobs.experience')}
+                    </label>
+                    <select
+                      id="experienceLevel"
+                      className={`block w-full rounded-md sm:text-sm py-2 px-3 border-gray-300 focus:ring-primary-500 focus:border-primary-500 ${
+                        errors.experienceLevel ? 'border-red-300' : ''
+                      }`}
+                      {...register('experienceLevel')}
+                    >
+                      <option value="junior">{t('jobs.experience_levels.junior')}</option>
+                      <option value="intermediate">{t('jobs.experience_levels.intermediate')}</option>
+                      <option value="senior">{t('jobs.experience_levels.senior')}</option>
+                    </select>
+                    {errors.experienceLevel && (
+                      <p className="mt-1 text-sm text-red-600">{errors.experienceLevel.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label={t('jobs.startDate')}
+                    type="date"
+                    {...register('startDate')}
+                  />
+
+                  <Input
+                    label={t('jobs.languages')}
+                    placeholder="Ex: Français, Anglais"
+                    {...register('languages')}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('jobs.description')}
+                  </label>
+                  <textarea
+                    id="description"
+                    rows={8}
+                    className={`block w-full rounded-md sm:text-sm py-2 px-3 border-gray-300 focus:ring-primary-500 focus:border-primary-500 ${
+                      errors.description ? 'border-red-300' : ''
+                    }`}
+                    {...register('description')}
+                  ></textarea>
+                  {errors.description && (
+                    <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+                  )}
+                </div>
+              </div>
+            </Card>
+
+            {/* Required Skills */}
+            <Card title="Compétences requises" padding="normal">
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <div className="relative flex-grow">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <TagIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Ajouter une compétence"
+                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                      value={newSkill}
+                      onChange={(e) => setNewSkill(e.target.value)}
+                      onKeyPress={(e) => handleKeyPress(e, handleAddSkill)}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAddSkill}
+                  >
+                    <PlusIcon className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {skills.map((skill) => (
+                    <div
+                      key={skill}
+                      className="flex items-center bg-primary-100 text-primary-800 px-3 py-1 rounded-full text-sm"
+                    >
+                      <span>{skill}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSkill(skill)}
+                        className="ml-1.5 text-primary-600 hover:text-primary-800"
+                      >
+                        <XMarkIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {skills.length === 0 && (
+                    <p className="text-sm text-gray-500 italic">
+                      Ajoutez les compétences requises pour ce poste
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Pipeline Stages */}
+          <div className="md:col-span-1 space-y-6">
+            <Card title={t('jobs.pipeline')} padding="normal">
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Personnalisez les étapes du processus de recrutement pour cette offre.
+                </p>
+
+                <div className="flex items-center space-x-2">
+                  <Input
+                    placeholder="Nouvelle étape"
+                    value={newStage}
+                    onChange={(e) => setNewStage(e.target.value)}
+                    onKeyPress={(e) => handleKeyPress(e, handleAddPipelineStage)}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAddPipelineStage}
+                  >
+                    <PlusIcon className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                <div className="space-y-2 mt-3">
+                  {pipelineStages.map((stage, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
+                    >
+                      <div className="flex items-center">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary-100 text-primary-800 text-xs font-medium mr-3">
+                          {index + 1}
+                        </span>
+                        <span className="text-sm text-gray-700">{stage}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePipelineStage(stage)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
+
+            <Card title="Publication" padding="normal">
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Une fois enregistrée, l'offre sera visible sur votre tableau de bord et vous pourrez commencer à importer des CV.
+                </p>
+                <div className="flex flex-col space-y-3">
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    fullWidth
+                    isLoading={submitting}
+                  >
+                    Publier l'offre
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    fullWidth
+                    onClick={() => navigate('/app/jobs')}
+                  >
+                    Annuler
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default JobCreate;
+
+=== FICHIER: frontend\src\pages\jobs\JobDetail.tsx ===
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import {
+  ArrowLeftIcon,
+  PencilIcon,
+  TrashIcon,
+  UserGroupIcon,
+  CalendarIcon,
+  MapPinIcon,
+  BriefcaseIcon,
+  CurrencyEuroIcon,
+  AcademicCapIcon,
+  LanguageIcon,
+  ClockIcon,
+  TagIcon,
+  FunnelIcon,
+  DocumentArrowUpIcon,
+  ChartBarIcon,
+} from '@heroicons/react/24/outline';
+import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
+import Badge from '../../components/ui/Badge';
+
+// Types
+interface Job {
+  id: string;
+  title: string;
+  location: string;
+  contractType: string;
+  status: string;
+  salary: string;
+  experienceLevel: string;
+  languages: string;
+  startDate: string;
+  description: string;
+  skills: string[];
+  pipelineStages: string[];
+  createdAt: string;
+  updatedAt: string;
+  candidates: {
+    total: number;
+    byStatus: {
+      [key: string]: number;
+    };
+  };
+}
+
+const JobDetail: React.FC = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const [job, setJob] = useState<Job | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
+
+  useEffect(() => {
+    // In a real application, fetch data from the backend
+    const fetchJobDetails = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Mock data for demonstration
+        const mockJob: Job = {
+          id: id || '1',
+          title: 'Développeur Full Stack',
+          location: 'Paris, France',
+          contractType: 'cdi',
+          status: 'active',
+          salary: '45 000€ - 55 000€ / an',
+          experienceLevel: 'intermediate',
+          languages: 'Français, Anglais',
+          startDate: '2025-06-01',
+          description: `## Description du poste
+
+Nous recherchons un développeur Full Stack passionné pour rejoindre notre équipe à Paris. Vous travaillerez sur le développement de nouvelles fonctionnalités et l'amélioration de notre plateforme existante.
+
+## Responsabilités
+
+- Développer des fonctionnalités front-end et back-end
+- Collaborer avec les designers et les product managers
+- Participer aux revues de code et au debugging
+- Contribuer à l'architecture technique
+
+## Profil recherché
+
+- 3+ ans d'expérience en développement web
+- Maîtrise de JavaScript/TypeScript, React, Node.js
+- Expérience avec les bases de données SQL et NoSQL
+- Connaissances en DevOps (CI/CD, Docker) est un plus`,
+          skills: [
+            'JavaScript',
+            'TypeScript',
+            'React',
+            'Node.js',
+            'SQL',
+            'Git',
+            'Docker',
+          ],
+          pipelineStages: [
+            'À contacter',
+            'Entretien RH',
+            'Test technique',
+            'Entretien final',
+            'Proposition',
+            'Embauché',
+          ],
+          createdAt: '2025-03-15',
+          updatedAt: '2025-04-10',
+          candidates: {
+            total: 12,
+            byStatus: {
+              new: 3,
+              toContact: 4,
+              interview: 2,
+              rejected: 2,
+              hired: 1,
+            },
+          },
+        };
+        
+        // Simulate API delay
+        setTimeout(() => {
+          setJob(mockJob);
+          setIsLoading(false);
+        }, 800);
+      } catch (err: any) {
+        console.error('Error fetching job details:', err);
+        setError(err.message || 'Une erreur est survenue');
+        setIsLoading(false);
+      }
+    };
+
+    fetchJobDetails();
+  }, [id]);
+
+  const handleDelete = async () => {
+    try {
+      setIsLoading(true);
+      
+      // In a real application, this would be an API call
+      // await axios.delete(`/api/jobs/${id}`);
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      navigate('/app/jobs');
+    } catch (error) {
+      console.error('Error deleting job:', error);
+      alert('Une erreur est survenue lors de la suppression de l\'offre.');
+      setIsLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('fr-FR').format(date);
+  };
+
+  const getContractLabel = (contractType: string) => {
+    return t(`jobs.contracts.${contractType}`);
+  };
+
+  const getExperienceLabel = (level: string) => {
+    return t(`jobs.experience_levels.${level}`);
+  };
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'success';
+      case 'draft':
+        return 'warning';
+      case 'closed':
+        return 'danger';
+      default:
+        return 'default';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="animate-pulse text-gray-500">
+          {t('common.loading')}
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !job) {
+    return (
+      <div className="bg-red-50 p-4 rounded-md">
+        <p className="text-red-700">{error || 'Offre non trouvée'}</p>
+        <button
+          onClick={() => navigate('/app/jobs')}
+          className="mt-2 text-sm font-medium text-red-700 hover:text-red-900"
+        >
+          Retour aux offres
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Header with actions */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center mb-4 sm:mb-0">
+          <button
+            onClick={() => navigate('/app/jobs')}
+            className="mr-4 p-1 rounded-full hover:bg-gray-100"
+          >
+            <ArrowLeftIcon className="h-5 w-5 text-gray-500" />
+          </button>
+          <div>
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-gray-900 mr-3">
+                {job.title}
+              </h1>
+              <Badge
+                variant={getStatusBadgeVariant(job.status)}
+                size="sm"
+                rounded
+              >
+                {t(`jobs.status.${job.status}`)}
+              </Badge>
+            </div>
+            <p className="text-sm text-gray-600 mt-1">
+              Créée le {formatDate(job.createdAt)} • Mise à jour le {formatDate(job.updatedAt)}
+            </p>
+          </div>
+        </div>
+        <div className="flex space-x-3">
+          <Link to={`/app/candidates/import?jobId=${job.id}`}>
+            <Button
+              variant="primary"
+              leftIcon={<DocumentArrowUpIcon className="h-5 w-5" />}
+            >
+              {t('candidates.import')}
+            </Button>
+          </Link>
+          <div className="flex space-x-2">
+            <Link to={`/app/jobs/${job.id}/edit`}>
+              <Button
+                variant="outline"
+                leftIcon={<PencilIcon className="h-5 w-5" />}
+              >
+                {t('common.edit')}
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              leftIcon={<TrashIcon className="h-5 w-5 text-red-500" />}
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              {t('common.delete')}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Main job details */}
+        <div className="md:col-span-2 space-y-6">
+          {/* Job details */}
+          <Card padding="normal">
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-start">
+                  <MapPinIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-2" />
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">{t('jobs.location')}</h3>
+                    <p className="mt-1 text-sm text-gray-900">{job.location}</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <BriefcaseIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-2" />
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">{t('jobs.contract')}</h3>
+                    <p className="mt-1 text-sm text-gray-900">{getContractLabel(job.contractType)}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-start">
+                  <CurrencyEuroIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-2" />
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">{t('jobs.salary')}</h3>
+                    <p className="mt-1 text-sm text-gray-900">{job.salary || 'Non spécifié'}</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <AcademicCapIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-2" />
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">{t('jobs.experience')}</h3>
+                    <p className="mt-1 text-sm text-gray-900">{getExperienceLabel(job.experienceLevel)}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-start">
+                  <LanguageIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-2" />
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">{t('jobs.languages')}</h3>
+                    <p className="mt-1 text-sm text-gray-900">{job.languages || 'Non spécifié'}</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <ClockIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-2" />
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">{t('jobs.startDate')}</h3>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {job.startDate ? formatDate(job.startDate) : 'Non spécifié'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pt-3 border-t border-gray-200">
+                <div className="flex items-start">
+                  <TagIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-2" />
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">{t('jobs.skills')}</h3>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {job.skills.map((skill) => (
+                        <span
+                          key={skill}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Job description */}
+          <Card title={t('jobs.description')} padding="normal">
+            <div className="prose max-w-none">
+              {job.description.split('\n\n').map((paragraph, index) => (
+                <div key={index}>
+                  {paragraph.startsWith('##') ? (
+                    <h3 className="text-lg font-medium text-gray-900 mt-4 mb-2">
+                      {paragraph.replace('## ', '')}
+                    </h3>
+                  ) : paragraph.startsWith('-') ? (
+                    <ul className="list-disc pl-5 my-2">
+                      {paragraph.split('\n').map((item, idx) => (
+                        <li key={idx} className="text-gray-700">
+                          {item.replace('- ', '')}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-700 mb-4">{paragraph}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* Sidebar */}
+        <div className="md:col-span-1 space-y-6">
+          {/* Candidate Stats */}
+          <Card title="Candidats" padding="normal">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <UserGroupIcon className="h-5 w-5 text-primary-600 mr-2" />
+                  <span className="text-sm font-medium">Total</span>
+                </div>
+                <span className="text-lg font-semibold">{job.candidates.total}</span>
+              </div>
+              
+              <div className="space-y-2">
+                {Object.entries(job.candidates.byStatus).map(([status, count]) => (
+                  <div key={status} className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <span className="w-2 h-2 rounded-full mr-2" 
+                        style={{
+                          backgroundColor: 
+                            status === 'new' ? '#3b82f6' : 
+                            status === 'toContact' ? '#f59e0b' :
+                            status === 'interview' ? '#8b5cf6' :
+                            status === 'hired' ? '#10b981' : '#ef4444'
+                        }}
+                      />
+                      <span className="text-sm text-gray-600">{t(`candidates.statuses.${status}`)}</span>
+                    </div>
+                    <span className="text-sm font-medium">{count}</span>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="pt-3 flex flex-col space-y-2">
+                <Link to={`/app/candidates?jobId=${job.id}`}>
+                  <Button
+                    variant="outline"
+                    fullWidth
+                    leftIcon={<UserGroupIcon className="h-5 w-5" />}
+                  >
+                    Voir les candidats
+                  </Button>
+                </Link>
+                <Link to={`/app/candidates/import?jobId=${job.id}`}>
+                  <Button
+                    variant="outline"
+                    fullWidth
+                    leftIcon={<DocumentArrowUpIcon className="h-5 w-5" />}
+                  >
+                    Importer des CV
+                  </Button>
+                </Link>
+                <Link to={`/app/reports?jobId=${job.id}`}>
+                  <Button
+                    variant="outline"
+                    fullWidth
+                    leftIcon={<ChartBarIcon className="h-5 w-5" />}
+                  >
+                    Voir les stats
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </Card>
+
+          {/* Pipeline Stages */}
+          <Card title={t('jobs.pipeline')} padding="normal">
+            <div className="space-y-2">
+              {job.pipelineStages.map((stage, index) => (
+                <div
+                  key={index}
+                  className="flex items-center p-2 rounded-md"
+                >
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary-100 text-primary-800 text-xs font-medium mr-3">
+                    {index + 1}
+                  </span>
+                  <span className="text-sm text-gray-700">{stage}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Link to={`/app/jobs/${job.id}/edit`}>
+            <Button
+              variant="outline"
+              fullWidth
+              leftIcon={<PencilIcon className="h-5 w-5" />}
+            >
+              {t('common.edit')} {t('jobs.title').toLowerCase()}
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed z-10 inset-0 overflow-y-auto">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+              <div>
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                  <TrashIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
+                </div>
+                <div className="mt-3 text-center sm:mt-5">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Supprimer cette offre d'emploi ?
+                  </h3>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500">
+                      Êtes-vous sûr de vouloir supprimer cette offre d'emploi ? Cette action est irréversible et supprimera également tous les candidats associés.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                <button
+                  type="button"
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm"
+                  onClick={handleDelete}
+                >
+                  Supprimer
+                </button>
+                <button
+                  type="button"
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:col-start-1 sm:text-sm"
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default JobDetail;
+
+=== FICHIER: frontend\src\pages\jobs\JobEdit.tsx ===
+// Placeholder 
+
+
+=== FICHIER: frontend\src\pages\jobs\JobsList.tsx ===
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import {
+  PlusIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  EllipsisVerticalIcon,
+} from '@heroicons/react/24/outline';
+import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
+import Badge from '../../components/ui/Badge';
+
+// Temporary mock data - Would be fetched from API in production
+interface Job {
+  id: string;
+  title: string;
+  location: string;
+  contractType: string;
+  status: string;
+  candidates: number;
+  createdAt: string;
+}
+
+const JobsList: React.FC = () => {
+  const { t } = useTranslation();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  useEffect(() => {
+    // In a real application, fetch data from the backend
+    const fetchJobs = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Mock data for demonstration
+        const mockJobs: Job[] = [
+          {
+            id: '1',
+            title: 'Développeur Full Stack',
+            location: 'Paris, France',
+            contractType: 'cdi',
+            status: 'active',
+            candidates: 12,
+            createdAt: '2025-03-15',
+          },
+          {
+            id: '2',
+            title: 'UX Designer Senior',
+            location: 'Lyon, France',
+            contractType: 'cdi',
+            status: 'active',
+            candidates: 8,
+            createdAt: '2025-03-20',
+          },
+          {
+            id: '3',
+            title: 'Chef de Projet IT',
+            location: 'Marseille, France',
+            contractType: 'cdd',
+            status: 'active',
+            candidates: 5,
+            createdAt: '2025-04-01',
+          },
+          {
+            id: '4',
+            title: 'Développeur Frontend React',
+            location: 'Télétravail',
+            contractType: 'freelance',
+            status: 'active',
+            candidates: 15,
+            createdAt: '2025-04-10',
+          },
+          {
+            id: '5',
+            title: 'DevOps Engineer',
+            location: 'Bordeaux, France',
+            contractType: 'cdi',
+            status: 'draft',
+            candidates: 0,
+            createdAt: '2025-04-18',
+          },
+          {
+            id: '6',
+            title: 'Stagiaire Marketing Digital',
+            location: 'Paris, France',
+            contractType: 'internship',
+            status: 'closed',
+            candidates: 22,
+            createdAt: '2025-02-15',
+          }
+        ];
+        
+        // Simulate API delay
+        setTimeout(() => {
+          setJobs(mockJobs);
+          setIsLoading(false);
+        }, 800);
+      } catch (err: any) {
+        console.error('Error fetching jobs:', err);
+        setError(err.message || 'Une erreur est survenue');
+        setIsLoading(false);
+      }
+    };
+
+    fetchJobs();
+  }, []);
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'success';
+      case 'draft':
+        return 'warning';
+      case 'closed':
+        return 'danger';
+      default:
+        return 'default';
+    }
+  };
+
+  const getContractLabel = (contractType: string) => {
+    return t(`jobs.contracts.${contractType}`);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('fr-FR').format(date);
+  };
+
+  // Filter jobs based on search query and status filter
+  const filteredJobs = jobs.filter((job) => {
+    const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          job.location.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="animate-pulse text-gray-500">
+          {t('common.loading')}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 p-4 rounded-md">
+        <p className="text-red-700">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-2 text-sm font-medium text-red-700 hover:text-red-900"
+        >
+          Réessayer
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4 sm:mb-0">
+          {t('jobs.title')}
+        </h1>
+        <Link to="/app/jobs/create">
+          <Button
+            variant="primary"
+            leftIcon={<PlusIcon className="h-5 w-5" />}
+          >
+            {t('jobs.createTitle')}
+          </Button>
+        </Link>
+      </div>
+
+      {/* Filters and Search */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-grow">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder={t('common.search')}
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        
+        <div className="relative inline-block w-full sm:w-48">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <FunnelIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <select
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">Tous les statuts</option>
+            <option value="active">{t('jobs.status.active')}</option>
+            <option value="draft">{t('jobs.status.draft')}</option>
+            <option value="closed">{t('jobs.status.closed')}</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Jobs List */}
+      <Card padding="none">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('jobs.jobTitle')}
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('jobs.location')}
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('jobs.contract')}
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('candidates.title')}
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('candidates.status')}
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th scope="col" className="relative px-6 py-3">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredJobs.length > 0 ? (
+                filteredJobs.map((job) => (
+                  <tr key={job.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Link to={`/app/jobs/${job.id}`} className="text-primary-600 hover:text-primary-900 font-medium">
+                        {job.title}
+                      </Link>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {job.location}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {getContractLabel(job.contractType)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {job.candidates}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Badge
+                        variant={getStatusBadgeVariant(job.status)}
+                        size="sm"
+                        rounded
+                      >
+                        {t(`jobs.status.${job.status}`)}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {formatDate(job.createdAt)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="relative inline-block text-left">
+                        <button className="p-1 rounded-full hover:bg-gray-100">
+                          <EllipsisVerticalIcon className="h-5 w-5 text-gray-400" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="px-6 py-10 text-center text-gray-500">
+                    {searchQuery ? 'Aucune offre ne correspond à votre recherche' : 'Aucune offre d\'emploi pour le moment'}
+                    <div className="mt-2">
+                      <Link to="/app/jobs/create" className="text-primary-600 hover:text-primary-900">
+                        Créer votre première offre
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+export default JobsList;
+
+
+=== DOSSIER: frontend\src\pages\onboarding ===
+
+=== FICHIER: frontend\src\pages\onboarding\OnboardingPage.tsx ===
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import {
+  BriefcaseIcon,
+  DocumentArrowUpIcon,
+  SparklesIcon,
+  CalendarIcon,
+} from '@heroicons/react/24/outline';
+import Button from '../../components/ui/Button';
+
+const OnboardingPage: React.FC = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(0);
+
+  const steps = [
+    {
+      title: t('onboarding.step1'),
+      description: 'Créez votre première offre d\'emploi et détaillez les compétences recherchées.',
+      icon: <BriefcaseIcon className="h-12 w-12 text-primary-600" />,
+      action: () => navigate('/app/jobs/create'),
+    },
+    {
+      title: t('onboarding.step2'),
+      description: 'Importez les CV des candidats par lot pour les associer à une offre.',
+      icon: <DocumentArrowUpIcon className="h-12 w-12 text-primary-600" />,
+      action: () => navigate('/app/candidates/import'),
+    },
+    {
+      title: t('onboarding.step3'),
+      description: 'Notre IA analyse automatiquement les profils et les classe selon leur pertinence.',
+      icon: <SparklesIcon className="h-12 w-12 text-primary-600" />,
+      action: () => navigate('/app/candidates'),
+    },
+    {
+      title: t('onboarding.step4'),
+      description: 'Planifiez et gérez vos entretiens avec les meilleurs candidats.',
+      icon: <CalendarIcon className="h-12 w-12 text-primary-600" />,
+      action: () => navigate('/app/interviews/create'),
+    },
+  ];
+
+  const handleNext = () => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      // Complete onboarding
+      navigate('/app');
+    }
+  };
+
+  const handleSkip = () => {
+    navigate('/app');
+  };
+
+  const handleActionClick = () => {
+    steps[currentStep].action();
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto">
+      <div className="text-center mb-10">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          {t('onboarding.welcome')}
+        </h1>
+        <p className="text-gray-600 max-w-xl mx-auto">
+          Suivez ces quelques étapes pour commencer à utiliser RecrutPME et optimiser votre processus de recrutement.
+        </p>
+      </div>
+
+      {/* Progress Indicator */}
+      <div className="flex justify-center mb-8">
+        <div className="flex items-center space-x-2">
+          {steps.map((_, index) => (
+            <div
+              key={index}
+              className={`h-2 w-16 rounded-full ${
+                index <= currentStep ? 'bg-primary-600' : 'bg-gray-200'
+              }`}
+            ></div>
+          ))}
+        </div>
+      </div>
+
+      {/* Step Content */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 mb-6">
+        <div className="flex flex-col items-center text-center">
+          <div className="mb-6 p-4 bg-primary-50 rounded-full">
+            {steps[currentStep].icon}
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">
+            {steps[currentStep].title}
+          </h2>
+          <p className="text-gray-600 mb-8 max-w-lg">
+            {steps[currentStep].description}
+          </p>
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={handleActionClick}
+          >
+            {steps[currentStep].title}
+          </Button>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <div className="flex justify-between">
+        <Button
+          variant="outline"
+          onClick={handleSkip}
+        >
+          {t('onboarding.skip')}
+        </Button>
+        <Button
+          variant="primary"
+          onClick={handleNext}
+        >
+          {currentStep < steps.length - 1 ? t('onboarding.next') : t('onboarding.complete')}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+export default OnboardingPage;
+
+
+=== DOSSIER: frontend\src\pages\reports ===
+
+=== FICHIER: frontend\src\pages\reports\Reports.tsx ===
+// Placeholder 
+
+
+
+=== DOSSIER: frontend\src\pages\settings ===
+
+=== FICHIER: frontend\src\pages\settings\Settings.tsx ===
+// Placeholder 
+
+
+=== FICHIER: frontend\src\routes.tsx ===
+import { createBrowserRouter } from 'react-router-dom';
+import RootLayout from './layouts/RootLayout';
+import AuthLayout from './layouts/AuthLayout';
+import DashboardLayout from './layouts/DashboardLayout';
+
+// Auth pages
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
+
+// Dashboard pages
+import Dashboard from './pages/dashboard/Dashboard';
+import JobsList from './pages/jobs/JobsList';
+import JobCreate from './pages/jobs/JobCreate';
+import JobDetail from './pages/jobs/JobDetail';
+import JobEdit from './pages/jobs/JobEdit';
+import CandidatesList from './pages/candidates/CandidatesList';
+import CandidateImport from './pages/candidates/CandidateImport';
+import CandidateDetail from './pages/candidates/CandidateDetail';
+import InterviewsList from './pages/interviews/InterviewsList';
+import InterviewCreate from './pages/interviews/InterviewCreate';
+import InterviewDetail from './pages/interviews/InterviewDetail';
+import Reports from './pages/reports/Reports';
+import Settings from './pages/settings/Settings';
+import OnboardingPage from './pages/onboarding/OnboardingPage';
+
+// Error pages
+import NotFound from './pages/error/NotFound';
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <RootLayout />,
+    children: [
+      {
+        path: '/',
+        element: <AuthLayout />,
+        children: [
+          { index: true, element: <Login /> },
+          { path: 'login', element: <Login /> },
+          { path: 'register', element: <Register /> },
+          { path: 'forgot-password', element: <ForgotPassword /> },
+          { path: 'reset-password', element: <ResetPassword /> },
+        ],
+      },
+      {
+        path: '/app',
+        element: <DashboardLayout />,
+        children: [
+          { index: true, element: <Dashboard /> },
+          { path: 'onboarding', element: <OnboardingPage /> },
+          { path: 'jobs', element: <JobsList /> },
+          { path: 'jobs/create', element: <JobCreate /> },
+          { path: 'jobs/:id', element: <JobDetail /> },
+          { path: 'jobs/:id/edit', element: <JobEdit /> },
+          { path: 'candidates', element: <CandidatesList /> },
+          { path: 'candidates/import', element: <CandidateImport /> },
+          { path: 'candidates/:id', element: <CandidateDetail /> },
+          { path: 'interviews', element: <InterviewsList /> },
+          { path: 'interviews/create', element: <InterviewCreate /> },
+          { path: 'interviews/:id', element: <InterviewDetail /> },
+          { path: 'reports', element: <Reports /> },
+          { path: 'settings', element: <Settings /> },
+        ],
+      },
+      { path: '*', element: <NotFound /> },
+    ],
+  },
+]);
+
+export default router;
+
+
+=== DOSSIER: frontend\src\services ===
+
+
+=== DOSSIER: frontend\src\types ===
+
+
+=== DOSSIER: frontend\src\utils ===
+
