@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { analyticsService, jobsService } from '../../services/api';
+
 import {
   ChartBarIcon,
   DocumentArrowDownIcon,
@@ -58,56 +60,101 @@ const Reports: React.FC = () => {
   const [jobStats, setJobStats] = useState<JobStats[]>([]);
   const [candidateStats, setCandidateStats] = useState<CandidateStats[]>([]);
   const [conversionStats, setConversionStats] = useState<ConversionStats[]>([]);
+  const [jobs, setJobs] = useState<JobStats[]>([]);
 
   // Load data on mount
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       setIsLoading(true);
+  //       setError(null);
+        
+  //       // Mock data for demonstration
+  //       const mockJobStats: JobStats[] = [
+  //         { id: '1', title: 'Développeur Full Stack', candidates: 15, interviews: 8, hiredRate: 13.3 },
+  //         { id: '2', title: 'UX Designer Senior', candidates: 10, interviews: 5, hiredRate: 20 },
+  //         { id: '3', title: 'Chef de Projet IT', candidates: 8, interviews: 4, hiredRate: 12.5 },
+  //         { id: '4', title: 'Développeur Frontend React', candidates: 12, interviews: 6, hiredRate: 16.7 },
+  //         { id: '5', title: 'DevOps Engineer', candidates: 7, interviews: 3, hiredRate: 14.3 },
+  //       ];
+        
+  //       const mockCandidateStats: CandidateStats[] = [
+  //         { period: 'Jan', new: 5, toContact: 3, interview: 2, hired: 1, rejected: 1 },
+  //         { period: 'Feb', new: 7, toContact: 5, interview: 3, hired: 2, rejected: 2 },
+  //         { period: 'Mar', new: 10, toContact: 8, interview: 6, hired: 2, rejected: 3 },
+  //         { period: 'Apr', new: 12, toContact: 9, interview: 5, hired: 3, rejected: 4 },
+  //         { period: 'May', new: 8, toContact: 6, interview: 4, hired: 2, rejected: 2 },
+  //         { period: 'Jun', new: 15, toContact: 12, interview: 8, hired: 3, rejected: 5 },
+  //       ];
+        
+  //       const mockConversionStats: ConversionStats[] = [
+  //         { stage: 'CV Review', rate: 80, avgDays: 3 },
+  //         { stage: 'Initial Contact', rate: 60, avgDays: 5 },
+  //         { stage: 'Interview', rate: 40, avgDays: 7 },
+  //         { stage: 'Final Decision', rate: 30, avgDays: 4 },
+  //         { stage: 'Offer Sent', rate: 90, avgDays: 2 },
+  //       ];
+        
+  //       // Simulate API delay
+  //       setTimeout(() => {
+  //         setJobStats(mockJobStats);
+  //         setCandidateStats(mockCandidateStats);
+  //         setConversionStats(mockConversionStats);
+  //         setIsLoading(false);
+  //       }, 1000);
+  //     } catch (err: any) {
+  //       console.error('Error fetching report data:', err);
+  //       setError(err.message || 'Une erreur est survenue');
+  //       setIsLoading(false);
+  //     }
+  //   };
+
+  //   fetchData();
+  // }, []);
+
   useEffect(() => {
+    const abortController = new AbortController();
+    
     const fetchData = async () => {
       try {
         setIsLoading(true);
         setError(null);
         
-        // Mock data for demonstration
-        const mockJobStats: JobStats[] = [
-          { id: '1', title: 'Développeur Full Stack', candidates: 15, interviews: 8, hiredRate: 13.3 },
-          { id: '2', title: 'UX Designer Senior', candidates: 10, interviews: 5, hiredRate: 20 },
-          { id: '3', title: 'Chef de Projet IT', candidates: 8, interviews: 4, hiredRate: 12.5 },
-          { id: '4', title: 'Développeur Frontend React', candidates: 12, interviews: 6, hiredRate: 16.7 },
-          { id: '5', title: 'DevOps Engineer', candidates: 7, interviews: 3, hiredRate: 14.3 },
-        ];
+        // Récupérer les offres d'emploi
+        const jobsResponse = await jobsService.getJobs({ status: 'active' });
+        setJobs(jobsResponse.data);
         
-        const mockCandidateStats: CandidateStats[] = [
-          { period: 'Jan', new: 5, toContact: 3, interview: 2, hired: 1, rejected: 1 },
-          { period: 'Feb', new: 7, toContact: 5, interview: 3, hired: 2, rejected: 2 },
-          { period: 'Mar', new: 10, toContact: 8, interview: 6, hired: 2, rejected: 3 },
-          { period: 'Apr', new: 12, toContact: 9, interview: 5, hired: 3, rejected: 4 },
-          { period: 'May', new: 8, toContact: 6, interview: 4, hired: 2, rejected: 2 },
-          { period: 'Jun', new: 15, toContact: 12, interview: 8, hired: 3, rejected: 5 },
-        ];
+        // Récupérer les statistiques selon les filtres
+        const params = {
+          jobId: selectedJobId !== 'all' ? selectedJobId : undefined,
+          period: periodFilter
+        };
         
-        const mockConversionStats: ConversionStats[] = [
-          { stage: 'CV Review', rate: 80, avgDays: 3 },
-          { stage: 'Initial Contact', rate: 60, avgDays: 5 },
-          { stage: 'Interview', rate: 40, avgDays: 7 },
-          { stage: 'Final Decision', rate: 30, avgDays: 4 },
-          { stage: 'Offer Sent', rate: 90, avgDays: 2 },
-        ];
+        // Récupérer les statistiques de conversion
+        const conversionResponse = await analyticsService.getConversionStats(params);
+        setConversionStats(conversionResponse.data);
         
-        // Simulate API delay
-        setTimeout(() => {
-          setJobStats(mockJobStats);
-          setCandidateStats(mockCandidateStats);
-          setConversionStats(mockConversionStats);
-          setIsLoading(false);
-        }, 1000);
-      } catch (err: any) {
+        // Si une offre spécifique est sélectionnée, récupérer ses statistiques
+        if (selectedJobId !== 'all') {
+          const jobStatsResponse = await analyticsService.getJobStats(selectedJobId);
+          // Mettre à jour l'état avec les statistiques de l'offre
+          // Adapter selon la structure de votre réponse API
+        }
+        
+        setIsLoading(false);
+      } catch (err) {
         console.error('Error fetching report data:', err);
-        setError(err.message || 'Une erreur est survenue');
+        setError(err.response?.data?.message || 'Une erreur est survenue');
         setIsLoading(false);
       }
     };
-
+  
     fetchData();
-  }, []);
+    
+    return () => {
+      abortController.abort();
+    };
+  }, [selectedJobId, periodFilter]);
 
   const COLORS = ['#8884d8', '#83a6ed', '#8dd1e1', '#82ca9d', '#a4de6c', '#d0ed57'];
   const STATUS_COLORS = {

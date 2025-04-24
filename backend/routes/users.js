@@ -3,7 +3,7 @@ const { body, param } = require('express-validator');
 const userController = require('../controllers/userController');
 const { validate } = require('../middleware/validation');
 const { authenticate } = require('../middleware/auth');
-
+const Joi = require('joi');
 const router = express.Router();
 
 // All user routes require authentication
@@ -21,16 +21,34 @@ router.get('/profile', userController.getUserProfile);
  * @desc Update user profile
  * @access Private
  */
-router.put(
-  '/profile',
-  [
-    body('firstName').optional().notEmpty().withMessage('Le prénom ne peut pas être vide'),
-    body('lastName').optional().notEmpty().withMessage('Le nom ne peut pas être vide'),
-    body('companyName').optional().notEmpty().withMessage('Le nom de l\'entreprise ne peut pas être vide'),
-    validate
-  ],
-  userController.updateUserProfile
-);
+// router.put(
+//   '/profile',
+//   [
+//     body('firstName').optional().notEmpty().withMessage('Le prénom ne peut pas être vide'),
+//     body('lastName').optional().notEmpty().withMessage('Le nom ne peut pas être vide'),
+//     body('companyName').optional().notEmpty().withMessage('Le nom de l\'entreprise ne peut pas être vide'),
+//     validate
+//   ],
+//   userController.updateUserProfile
+// );
+
+const updateProfileSchema = Joi.object({
+    firstName: Joi.string().optional().messages({
+    'string.empty': '',
+    'any.required': ''
+  }),
+  lastName: Joi.string().optional().messages({
+   'string.empty': '',
+    'any.required': ''
+  }),
+  companyName: Joi.string().optional().messages({
+    'string.empty': '',
+     'any.required': ''
+   }),
+});
+
+// La route pour mettre à jour le profil devrait ressembler à ceci:
+router.put('/profile', authenticate, validate(updateProfileSchema), userController.updateUserProfile);
 
 /**
  * @route PUT /api/users/password
@@ -69,5 +87,8 @@ router.delete(
  * @access Private
  */
 router.get('/data-export', userController.exportUserData);
+router.put('/company', authenticate, userController.updateCompany);
+router.put('/notifications', authenticate, userController.updateNotificationPreferences);
+
 
 module.exports = router;

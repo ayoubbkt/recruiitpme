@@ -223,7 +223,7 @@ const createInterview = async (req, res) => {
         videoLink,
         notes,
         status: 'scheduled',
-        userId: req.user?.id // Associer l'entretien à l'utilisateur connecté si disponible
+        interviewerId: req.user.id// Associer l'entretien à l'utilisateur connecté si disponible
       }
     });
 

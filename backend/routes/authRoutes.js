@@ -84,7 +84,7 @@ const updateProfileSchema = Joi.object({
     'string.empty': 'Le nom est requis',
     'any.required': 'Le nom est requis'
   }),
-  companyName: Joi.string().required().messages({
+  companyName: Joi.string().optional().messages({
     'string.empty': 'Le nom de l\'entreprise est requis',
     'any.required': 'Le nom de l\'entreprise est requis'
   })

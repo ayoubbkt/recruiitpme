@@ -25,18 +25,82 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     // Handle 401 Unauthorized - redirect to login
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+    if (error.response && error.response.status === 401 && 
+      !error.config.url.includes('/auth/change-password')) {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
 
+// Dans services/api.ts
+export const userService = {
+
+  
+  getProfile: async () => {
+    const response = await api.get('/users/profile');
+    return response.data;
+  },
+  
+  updateProfile: async (profileData: any) => {
+    console.log("profileData: ", profileData);
+    const response = await api.put('/users/profile', profileData);
+    return response.data;
+  },
+  
+  changePassword: async (passwordData: any) => {
+    const response = await api.put('/users/password', passwordData);
+    return response.data;
+  },
+  
+  deleteAccount: async (password: string) => {
+    const response = await api.delete('/users/account', { 
+      data: { password } 
+    });
+    return response.data;
+  },
+  updateCompany: async (companyData: {
+    companyName: string;
+    address?: string;
+    phone?: string;
+    website?: string;
+  }) => {
+    const response = await api.put('/users/company', companyData);
+    return response.data;
+  },
+  
+  // Mise à jour des préférences de notification
+  updateNotificationPreferences: async (preferences: {
+    emailNotifications: {
+      newCandidates: boolean;
+      interviews: boolean;
+      weeklyDigest: boolean;
+    },
+    appNotifications: boolean;
+  }) => {
+    const response = await api.put('/users/notifications', preferences);
+    return response.data;
+  },
+
+  // Export des données utilisateur (RGPD)
+  exportUserData: async () => {
+    const response = await api.get('/api/users/data-export', {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+  
+};
+
+
+
 // Authentication service
 export const authService = {
   login: async (email: string, password: string) => {
     const response = await api.post('/auth/login', { email, password });
+    console.log('Full login response:', response);
+    
     return response.data;
   },
   
@@ -55,6 +119,23 @@ export const authService = {
     const response = await api.get('/auth/me');
     return response.data;
   },
+
+  updateProfile: async (profileData: {
+    firstName: string;
+    lastName: string;
+    companyName: string;
+  }) => {
+    const response = await api.put('/auth/profile', profileData);
+    return response.data;
+  },
+  
+  changePassword: async (passwordData: {
+    currentPassword: string;
+    newPassword: string;
+  }) => {
+    const response = await api.post('/auth/change-password', passwordData);
+    return response.data;
+  },
   
   resetPassword: async (email: string) => {
     const response = await api.post('/auth/reset-password', { email });
@@ -65,6 +146,14 @@ export const authService = {
     const response = await api.post('/auth/reset-password/confirm', { token, password });
     return response.data;
   },
+
+  verifyEmail: async (token: string) => {
+    const response = await api.post('/auth/verify-email', { token });
+    return response.data;
+  },
+
+  
+  
 };
 
 // Jobs service

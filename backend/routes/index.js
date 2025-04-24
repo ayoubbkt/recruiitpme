@@ -5,6 +5,7 @@ const jobRoutes = require('./jobRoutes');
 const candidateRoutes = require('./candidateRoutes');
 const interviewRoutes = require('./interviewRoutes');
 const analyticsRoutes = require('./analyticsRoutes');
+const usersRoutes = require('./users.js');
 
 // Route de base pour vérifier que l'API est en ligne
 router.get('/', (req, res) => {
@@ -21,5 +22,6 @@ router.use('/jobs', jobRoutes);
 router.use('/candidates', candidateRoutes);
 router.use('/interviews', interviewRoutes);
 router.use('/analytics', analyticsRoutes);
+router.use('/users', usersRoutes); // Ajouter cette ligne pour supporter les routes /users
 
 module.exports = router;

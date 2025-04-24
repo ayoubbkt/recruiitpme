@@ -36,17 +36,18 @@ const register = async (req, res) => {
     const user = await prisma.user.create({
       data: {
         email,
-        password: hashedPassword,
+        passwordHash: hashedPassword,
         firstName,
         lastName,
         companyName,
         verificationToken,
-        isEmailVerified: false
+        emailVerified: false
       }
     });
 
     // Envoyer l'email de bienvenue avec le token de vérification
     await emailService.sendWelcomeEmail(user, verificationToken);
+     
 
     // Masquer le mot de passe et le token dans la réponse
     const userResponse = {
@@ -65,6 +66,7 @@ const register = async (req, res) => {
       userResponse
     );
   } catch (error) {
+    console.error("Erreur détaillée:", error);
     logger.error(`Erreur lors de l'inscription: ${error.message}`);
     return respondWithError(res, 500, 'Erreur lors de l\'inscription', error.message);
   }
@@ -76,62 +78,104 @@ const register = async (req, res) => {
  * @param {Object} res - Réponse Express
  */
 const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // Vérifier si l'utilisateur existe
-    const user = await prisma.user.findUnique({
-      where: { email }
-    });
-
-    if (!user) {
-      return respondWithError(res, 401, 'Email ou mot de passe incorrect');
-    }
-
-    // Vérifier le mot de passe
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return respondWithError(res, 401, 'Email ou mot de passe incorrect');
-    }
-
-    // Vérifier si l'email est vérifié
-    if (!user.isEmailVerified) {
-      return respondWithError(res, 401, 'Veuillez vérifier votre email avant de vous connecter');
-    }
-
-    // Générer le JWT
-    const token = jwt.sign(
-      { 
-        sub: user.id, 
+    try {
+      const { email, password } = req.body;
+  
+      // Validation des entrées
+      if (!email || !password) {
+        return respondWithError(res, 400, 'Email et mot de passe requis');
+      }
+  
+      // Vérifier si l'utilisateur existe
+      let user;
+      try {
+        user = await prisma.user.findUnique({
+          where: { email }
+        });
+      } catch (findError) {
+        logger.error(`Erreur lors de la recherche de l'utilisateur: ${findError.message}`);
+        return respondWithError(res, 500, 'Erreur de recherche utilisateur');
+      }
+  
+      if (!user) {
+        return respondWithError(res, 401, 'Email ou mot de passe incorrect');
+      }
+  
+      console.log("user: ",user);
+      // ⚠️ Ce bloc était placé trop tôt
+      if (!user.passwordHash) {
+        logger.error('Utilisateur sans mot de passe');
+        return respondWithError(res, 500, 'Erreur de compte');
+      }
+  
+      // Vérification du mot de passe
+      let isPasswordValid;
+      try {
+        isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+      } catch (compareError) {
+        logger.error(`Erreur de comparaison de mot de passe: ${compareError.message}`);
+        return respondWithError(res, 500, 'Erreur de système lors de l\'authentification');
+      }
+  
+      if (!isPasswordValid) {
+        return respondWithError(res, 401, 'Email ou mot de passe incorrect');
+      }
+  
+      // Vérifier si l'email est vérifié
+      if (!user.emailVerified) {
+        return respondWithError(res, 401, 'Veuillez vérifier votre email avant de vous connecter');
+      }
+  
+      // Générer le JWT
+      const token = jwt.sign(
+        {
+          sub: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          companyName: user.companyName
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+      );
+  
+      // Mettre à jour la dernière connexion
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLogin: new Date() }
+      });
+  
+      const userResponse = {
+        id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         companyName: user.companyName
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
-    );
-
-    // Masquer le mot de passe dans la réponse
-    const userResponse = {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      companyName: user.companyName
-    };
-
-    return respondWithSuccess(
-      res, 
-      200, 
-      'Connexion réussie', 
-      { user: userResponse, token }
-    );
-  } catch (error) {
-    logger.error(`Erreur lors de la connexion: ${error.message}`);
-    return respondWithError(res, 500, 'Erreur lors de la connexion', error.message);
-  }
-};
+      };
+  
+      return respondWithSuccess(
+        res,
+        200,
+        'Connexion réussie',
+        { user: userResponse, token }
+      );
+  
+    } catch (error) {
+      logger.error(`Erreur lors de la connexion: ${error.message}`, {
+        errorStack: error.stack,
+        requestBody: { email: req.body.email },
+        timestamp: new Date().toISOString()
+      });
+  
+      return respondWithError(
+        res,
+        500,
+        'Une erreur inattendue est survenue lors de la connexion',
+        process.env.NODE_ENV === 'development' ? error.message : undefined
+      );
+    }
+  };
+  
 
 /**
  * Vérifie l'email d'un utilisateur avec le token
@@ -155,7 +199,7 @@ const verifyEmail = async (req, res) => {
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        isEmailVerified: true,
+        emailVerified: true,
         verificationToken: null
       }
     });
@@ -296,9 +340,11 @@ const getProfile = async (req, res) => {
  * @param {Object} res - Réponse Express
  */
 const updateProfile = async (req, res) => {
+    
   try {
     const { firstName, lastName, companyName } = req.body;
     const userId = req.user.id;
+   
 
     // Mettre à jour le profil
     const updatedUser = await prisma.user.update({
@@ -338,6 +384,8 @@ const updateProfile = async (req, res) => {
  */
 const changePassword = async (req, res) => {
   try {
+
+    
     const { currentPassword, newPassword } = req.body;
     const userId = req.user.id;
 
@@ -345,23 +393,33 @@ const changePassword = async (req, res) => {
     const user = await prisma.user.findUnique({
       where: { id: userId }
     });
+    
+    
+    
+   
+    
 
     // Vérifier le mot de passe actuel
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    
     if (!isPasswordValid) {
-      return respondWithError(res, 401, 'Mot de passe actuel incorrect');
+      return respondWithError(res, 403, 'Mot de passe actuel incorrect');
     }
+
+    const isSamePassword = await bcrypt.compare(newPassword, user.passwordHash);
+    if (isSamePassword) {
+      return respondWithError(res, 400, 'Le nouveau mot de passe doit être différent de l\'ancien');
+    }
+    
 
     // Hasher le nouveau mot de passe
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+     
     // Mettre à jour le mot de passe
     await prisma.user.update({
       where: { id: userId },
-      data: {
-        password: hashedPassword
-      }
+      data: { passwordHash }
     });
 
     return respondWithSuccess(
@@ -374,6 +432,8 @@ const changePassword = async (req, res) => {
     return respondWithError(res, 500, 'Erreur lors du changement de mot de passe', error.message);
   }
 };
+
+
 
 module.exports = {
   register,

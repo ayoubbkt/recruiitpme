@@ -8,6 +8,12 @@ export interface User {
     companyName: string;
     createdAt: string;
     updatedAt: string;
+    notificationPreferences?: {
+      emailNewCandidates: boolean;
+      emailInterviews: boolean;
+      emailWeeklyDigest: boolean;
+      appNotificationsEnabled: boolean;
+    };
   }
   
   export interface AuthResponse {

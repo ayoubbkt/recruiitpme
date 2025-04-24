@@ -26,6 +26,8 @@ model User {
   lastLogin         DateTime?
 
   // Relations
+   //company             Company?                 // Relation one-to-one
+  notificationPreferences NotificationPreference?
   jobs         Job[]
   notes        Note[]
   interviews   Interview[]  @relation("Interviewer")
@@ -33,6 +35,37 @@ model User {
   
   @@map("users")
 }
+
+// Nouveau modèle pour les détails d'entreprise
+model Company {
+  id          String   @id @default(uuid())
+  address     String?
+  phone       String?
+  website     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relation vers User
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+// Nouveau modèle pour les préférences de notification
+model NotificationPreference {
+  id                    String   @id @default(uuid())
+  emailNewCandidates    Boolean  @default(true)
+  emailInterviews       Boolean  @default(true)
+  emailWeeklyDigest     Boolean  @default(false)
+  appNotificationsEnabled Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // Relation vers User
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 
 model Job {
   id              String   @id @default(uuid())

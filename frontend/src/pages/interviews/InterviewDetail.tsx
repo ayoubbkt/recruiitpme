@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { interviewsService } from '../../services/api'; 
 import {
   ArrowLeftIcon,
   CalendarIcon,
@@ -54,64 +55,112 @@ const InterviewDetail: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
+  // useEffect(() => {
+  //   // In a real application, fetch data from the backend
+  //   const fetchInterviewDetails = async () => {
+  //     try {
+  //       setIsLoading(true);
+  //       setError(null);
+        
+  //       // Mock data for demonstration
+  //       const mockInterview: Interview = {
+  //         id: id || '1',
+  //         candidateId: '1',
+  //         candidateName: 'Sophie Martin',
+  //         candidateEmail: 'sophie.martin@example.com',
+  //         jobId: '1',
+  //         jobTitle: 'Développeur Full Stack',
+  //         date: '2025-04-25',
+  //         time: '10:00',
+  //         interviewer: 'Marie Dupont',
+  //         interviewerEmail: 'marie.dupont@entreprise.com',
+  //         videoLink: 'https://meet.google.com/abc-defg-hij',
+  //         notes: 'Préparer des questions techniques sur React et Node.js. Vérifier les projets sur GitHub.',
+  //         status: 'scheduled',
+  //         createdAt: '2025-04-15',
+  //         updatedAt: '2025-04-15',
+  //       };
+        
+  //       // Simulate API delay
+  //       setTimeout(() => {
+  //         setInterview(mockInterview);
+  //         setIsLoading(false);
+  //       }, 800);
+  //     } catch (err: any) {
+  //       console.error('Error fetching interview details:', err);
+  //       setError(err.message || 'Une erreur est survenue');
+  //       setIsLoading(false);
+  //     }
+  //   };
+
+  //   fetchInterviewDetails();
+  // }, [id]);
+
   useEffect(() => {
-    // In a real application, fetch data from the backend
     const fetchInterviewDetails = async () => {
       try {
         setIsLoading(true);
         setError(null);
         
-        // Mock data for demonstration
-        const mockInterview: Interview = {
-          id: id || '1',
-          candidateId: '1',
-          candidateName: 'Sophie Martin',
-          candidateEmail: 'sophie.martin@example.com',
-          jobId: '1',
-          jobTitle: 'Développeur Full Stack',
-          date: '2025-04-25',
-          time: '10:00',
-          interviewer: 'Marie Dupont',
-          interviewerEmail: 'marie.dupont@entreprise.com',
-          videoLink: 'https://meet.google.com/abc-defg-hij',
-          notes: 'Préparer des questions techniques sur React et Node.js. Vérifier les projets sur GitHub.',
-          status: 'scheduled',
-          createdAt: '2025-04-15',
-          updatedAt: '2025-04-15',
-        };
-        
-        // Simulate API delay
-        setTimeout(() => {
-          setInterview(mockInterview);
-          setIsLoading(false);
-        }, 800);
-      } catch (err: any) {
+        // Appel API réel
+        const response = await interviewsService.getInterview(id);
+        setInterview(response.data);
+        setIsLoading(false);
+      } catch (err) {
         console.error('Error fetching interview details:', err);
-        setError(err.message || 'Une erreur est survenue');
+        setError(err.response?.data?.message || 'Une erreur est survenue');
         setIsLoading(false);
       }
     };
-
-    fetchInterviewDetails();
+  
+    if (id) {
+      fetchInterviewDetails();
+    }
   }, [id]);
 
-  const handleStatusChange = async (newStatus: 'scheduled' | 'completed' | 'canceled' | 'noShow') => {
+
+  // const handleStatusChange = async (newStatus: 'scheduled' | 'completed' | 'canceled' | 'noShow') => {
+  //   try {
+  //     setSubmitting(true);
+      
+  //     // In a real application, this would be an API call
+  //     // await axios.put(`/api/interviews/${id}/status`, { status: newStatus });
+      
+  //     // Update local state
+  //     if (interview) {
+  //       setInterview({
+  //         ...interview,
+  //         status: newStatus,
+  //       });
+  //     }
+      
+  //     // Simulate API delay
+  //     await new Promise(resolve => setTimeout(resolve, 500));
+      
+  //     setSubmitting(false);
+  //   } catch (error) {
+  //     console.error('Error updating interview status:', error);
+  //     setSubmitting(false);
+  //   }
+  // };
+
+  const handleStatusChange = async (newStatus) => {
     try {
       setSubmitting(true);
       
-      // In a real application, this would be an API call
-      // await axios.put(`/api/interviews/${id}/status`, { status: newStatus });
+      // Appel API réel
+      await interviewsService.updateInterview(id, { status: newStatus });
       
-      // Update local state
-      if (interview) {
-        setInterview({
-          ...interview,
-          status: newStatus,
-        });
-      }
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Mettre à jour l'état local
+      setInterview(prev => {
+        if (prev) {
+          return {
+            ...prev,
+            status: newStatus
+          };
+        }
+        return prev;
+      });
       
       setSubmitting(false);
     } catch (error) {
@@ -128,7 +177,7 @@ const InterviewDetail: React.FC = () => {
       
       // In a real application, this would be an API call
       // await axios.post(`/api/interviews/${id}/feedback`, { feedback });
-      
+      await interviewsService.addInterviewFeedback(id, feedback);
       // Update local state
       if (interview) {
         setInterview({
@@ -139,7 +188,7 @@ const InterviewDetail: React.FC = () => {
       }
       
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // await new Promise(resolve => setTimeout(resolve, 800));
       
       setSubmitting(false);
     } catch (error) {
@@ -154,7 +203,7 @@ const InterviewDetail: React.FC = () => {
       
       // In a real application, this would be an API call
       // await axios.delete(`/api/interviews/${id}`);
-      
+      await interviewsService.deleteInterview(id);
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 800));
       
@@ -351,7 +400,7 @@ const InterviewDetail: React.FC = () => {
             <div className="flex items-start">
               <div className="flex-shrink-0">
                 <div className="h-12 w-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-lg font-medium">
-                  {interview.candidateName.split(' ').map(name => name[0]).join('')}
+                  {interview.candidateName ? interview.candidateName.split(' ').map(name => name[0]).join('') :''}
                 </div>
               </div>
               <div className="ml-4 flex-1">

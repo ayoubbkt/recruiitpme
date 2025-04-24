@@ -131,8 +131,8 @@ const getCandidateById = async (req, res) => {
           orderBy: {
             createdAt: 'desc'
           }
-        },
-        documents: true
+        }
+        // documents: true
       }
     });
 

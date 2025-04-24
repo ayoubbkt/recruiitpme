@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { authService,userService } from '../../services/api';
 import {
   UserIcon,
   EnvelopeIcon,
@@ -12,6 +13,7 @@ import {
   LanguageIcon,
   ShieldExclamationIcon,
   ExclamationTriangleIcon,
+  DocumentArrowDownIcon ,
 } from '@heroicons/react/24/outline';
 
 import { useAuth } from '../../context/AuthContext';
@@ -50,14 +52,20 @@ const Settings: React.FC = () => {
   });
 
   // Define validation schema for password form
-  const passwordSchema = z.object({
-    currentPassword: z.string().min(1, t('common.required')),
-    newPassword: z.string().min(8, t('common.passwordMinLength')),
-    confirmPassword: z.string().min(1, t('common.required')),
-  }).refine(data => data.newPassword === data.confirmPassword, {
-    message: t('auth.passwordMatch'),
-    path: ['confirmPassword'],
-  });
+// Dans Settings.tsx
+const passwordSchema = z.object({
+  currentPassword: z.string().min(1, t('common.required')),
+  newPassword: z.string().min(8, t('common.passwordMinLength')),
+  confirmPassword: z.string().min(1, t('common.required')),
+})
+.refine(data => data.newPassword === data.confirmPassword, {
+  message: t('auth.passwordMatch'),
+  path: ['confirmPassword'],
+})
+.refine(data => data.currentPassword !== data.newPassword, {
+  message: 'Le nouveau mot de passe doit être différent de l\'ancien',
+  path: ['newPassword'],
+});
 
   type PasswordFormData = z.infer<typeof passwordSchema>;
 
@@ -75,10 +83,32 @@ const Settings: React.FC = () => {
     companyName: z.string().min(1, t('common.required')),
     address: z.string().optional(),
     phone: z.string().optional(),
-    website: z.string().optional(),
+    website: z.string().optional()
   });
-
+  
   type CompanyFormData = z.infer<typeof companySchema>;
+
+  const notificationSchema = z.object({
+    emailNewCandidates: z.boolean().default(true),
+    emailInterviews: z.boolean().default(true),
+    emailWeeklyDigest: z.boolean().default(false),
+    appNotificationsEnabled: z.boolean().default(true)
+  });
+  
+  type NotificationFormData = z.infer<typeof notificationSchema>;
+  const {
+    register: registerNotification,
+    handleSubmit: handleNotificationSubmit,
+  } = useForm<NotificationFormData>({
+    resolver: zodResolver(notificationSchema),
+    defaultValues: {
+      // Utilisez des valeurs par défaut au lieu de dépendre de user?.notificationPreferences
+      emailNewCandidates: user?.notificationPreferences?.emailNewCandidates ?? true,
+      emailInterviews: user?.notificationPreferences?.emailInterviews ?? true,
+      emailWeeklyDigest: user?.notificationPreferences?.emailWeeklyDigest ?? false,
+      appNotificationsEnabled: user?.notificationPreferences?.appNotificationsEnabled ?? true,
+    },
+  });
 
   const {
     register: registerCompany,
@@ -99,6 +129,14 @@ const Settings: React.FC = () => {
       
       // In a real application, this would be an API call
       // await axios.put('/api/auth/profile', data);
+      console.log("data: ", data);
+      const response = await authService.updateProfile({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        companyName: data.companyName
+      });
+      
+      
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -123,6 +161,13 @@ const Settings: React.FC = () => {
       //   currentPassword: data.currentPassword,
       //   newPassword: data.newPassword,
       // });
+
+       
+
+      await authService.changePassword({
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword
+      });
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -131,32 +176,66 @@ const Settings: React.FC = () => {
       resetPasswordForm();
     } catch (err: any) {
       console.error('Error updating password:', err);
-      setError(err.message || 'Une erreur est survenue');
+      if (err.response && err.response.status === 403) {
+        setError('Mot de passe actuel incorrect');
+      } else {
+        setError(err.response?.data?.message || 'Une erreur est survenue');
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const onCompanySubmit = async (data: CompanyFormData) => {
-    try {
-      setIsSubmitting(true);
-      setError(null);
-      setSuccess(null);
-      
-      // In a real application, this would be an API call
-      // await axios.put('/api/company', data);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setSuccess('Informations de l\'entreprise mises à jour avec succès !');
-    } catch (err: any) {
-      console.error('Error updating company:', err);
-      setError(err.message || 'Une erreur est survenue');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  try {
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(null);
+    
+    // Appel API pour mettre à jour les informations d'entreprise
+    await userService.updateCompany({
+      companyName: data.companyName,
+      address: data.address,
+      phone: data.phone,
+      website: data.website
+    });
+    
+    setSuccess('Informations de l\'entreprise mises à jour avec succès !');
+    
+    // Si vous avez un contexte pour l'utilisateur, mettez-le à jour
+    // updateUser({ ...user, companyName: data.companyName });
+  } catch (err: any) {
+    console.error('Error updating company info:', err);
+    setError(err.response?.data?.message || 'Une erreur est survenue lors de la mise à jour');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+const onNotificationsSubmit = async (data: NotificationFormData) => {
+  try {
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(null);
+    
+    // Appel API pour mettre à jour les préférences de notification
+    await userService.updateNotificationPreferences({
+      emailNotifications: {
+        newCandidates: data.emailNewCandidates,
+        interviews: data.emailInterviews,
+        weeklyDigest: data.emailWeeklyDigest
+      },
+      appNotifications: data.appNotificationsEnabled
+    });
+    
+    setSuccess('Préférences de notification mises à jour avec succès !');
+  } catch (err: any) {
+    console.error('Error updating notification preferences:', err);
+    setError(err.response?.data?.message || 'Une erreur est survenue lors de la mise à jour');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const changeLanguage = (language: string) => {
     i18n.changeLanguage(language);
@@ -475,95 +554,96 @@ const Settings: React.FC = () => {
 
           {/* Notifications Settings */}
           {activeTab === 'notifications' && (
-            <Card title={t('settings.notifications')} padding="normal">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-900 mb-3">Email notifications</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-start">
-                      <div className="flex items-center h-5">
-                        <input
-                          id="email_new_candidates"
-                          type="checkbox"
-                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                          defaultChecked
-                        />
-                      </div>
-                      <div className="ml-3 text-sm">
-                        <label htmlFor="email_new_candidates" className="font-medium text-gray-700">
-                          Nouveaux candidats
-                        </label>
-                        <p className="text-gray-500">Recevoir des notifications quand de nouveaux candidats sont ajoutés.</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="flex items-center h-5">
-                        <input
-                          id="email_interviews"
-                          type="checkbox"
-                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                          defaultChecked
-                        />
-                      </div>
-                      <div className="ml-3 text-sm">
-                        <label htmlFor="email_interviews" className="font-medium text-gray-700">
-                          Rappels d'entretiens
-                        </label>
-                        <p className="text-gray-500">Recevoir des rappels pour les entretiens à venir.</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="flex items-center h-5">
-                        <input
-                          id="email_digests"
-                          type="checkbox"
-                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                        />
-                      </div>
-                      <div className="ml-3 text-sm">
-                        <label htmlFor="email_digests" className="font-medium text-gray-700">
-                          Résumés hebdomadaires
-                        </label>
-                        <p className="text-gray-500">Recevoir un résumé hebdomadaire de l'activité.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="pt-4 border-t border-gray-200">
-                  <h3 className="text-sm font-medium text-gray-900 mb-3">Notifications dans l'application</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-start">
-                      <div className="flex items-center h-5">
-                        <input
-                          id="app_notifications"
-                          type="checkbox"
-                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                          defaultChecked
-                        />
-                      </div>
-                      <div className="ml-3 text-sm">
-                        <label htmlFor="app_notifications" className="font-medium text-gray-700">
-                          Activer les notifications
-                        </label>
-                        <p className="text-gray-500">Afficher les notifications dans l'application.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={() => setSuccess('Paramètres de notification mis à jour !')}
-                  >
-                    {t('common.save')}
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          )}
+  <Card title={t('settings.notifications')} padding="normal">
+    <form onSubmit={handleNotificationSubmit(onNotificationsSubmit)} className="space-y-4">
+      <div>
+        <h3 className="text-sm font-medium text-gray-900 mb-3">Notifications par email</h3>
+        <div className="space-y-2">
+          <div className="flex items-start">
+            <div className="flex items-center h-5">
+              <input
+                id="emailNewCandidates"
+                type="checkbox"
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                {...registerNotification('emailNewCandidates')}
+              />
+            </div>
+            <div className="ml-3 text-sm">
+              <label htmlFor="emailNewCandidates" className="font-medium text-gray-700">
+                Nouveaux candidats
+              </label>
+              <p className="text-gray-500">Recevoir des notifications quand de nouveaux candidats sont ajoutés.</p>
+            </div>
+          </div>
+          
+          <div className="flex items-start">
+            <div className="flex items-center h-5">
+              <input
+                id="emailInterviews"
+                type="checkbox"
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                {...registerNotification('emailInterviews')}
+              />
+            </div>
+            <div className="ml-3 text-sm">
+              <label htmlFor="emailInterviews" className="font-medium text-gray-700">
+                Rappels d'entretiens
+              </label>
+              <p className="text-gray-500">Recevoir des rappels pour les entretiens à venir.</p>
+            </div>
+          </div>
+          
+          <div className="flex items-start">
+            <div className="flex items-center h-5">
+              <input
+                id="emailWeeklyDigest"
+                type="checkbox"
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                {...registerNotification('emailWeeklyDigest')}
+              />
+            </div>
+            <div className="ml-3 text-sm">
+              <label htmlFor="emailWeeklyDigest" className="font-medium text-gray-700">
+                Résumés hebdomadaires
+              </label>
+              <p className="text-gray-500">Recevoir un résumé hebdomadaire de l'activité.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="pt-4 border-t border-gray-200">
+        <h3 className="text-sm font-medium text-gray-900 mb-3">Notifications dans l'application</h3>
+        <div className="flex items-start">
+          <div className="flex items-center h-5">
+            <input
+              id="appNotificationsEnabled"
+              type="checkbox"
+              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              {...registerNotification('appNotificationsEnabled')}
+            />
+          </div>
+          <div className="ml-3 text-sm">
+            <label htmlFor="appNotificationsEnabled" className="font-medium text-gray-700">
+              Activer les notifications
+            </label>
+            <p className="text-gray-500">Afficher les notifications dans l'application.</p>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex justify-end">
+        <Button
+          type="submit"
+          variant="primary"
+          isLoading={isSubmitting}
+        >
+          {t('common.save')}
+        </Button>
+      </div>
+    </form>
+  </Card>
+)}
 
           {/* Language Settings */}
           {activeTab === 'language' && (

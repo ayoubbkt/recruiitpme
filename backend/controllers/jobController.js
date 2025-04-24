@@ -214,7 +214,8 @@ const createJob = async (req, res) => {
         description,
         skills,
         pipelineStages,
-        status
+        status,
+        userId: req.user.id 
       }
     });
 
@@ -313,14 +314,18 @@ const deleteJob = async (req, res) => {
   try {
     const { id } = req.params;
 
+    console.log("Tentative de suppression de l'offre avec ID:", id);
     // Vérifier si l'offre existe
     const existingJob = await prisma.job.findUnique({
       where: { id }
     });
 
     if (!existingJob) {
+        console.log("Offre non trouvée avec ID:", id);
       return respondWithError(res, 404, 'Offre non trouvée');
     }
+
+    console.log("Offre trouvée, suppression en cours...");
 
     // Vérifier si des candidats sont liés à cette offre
     const candidatesCount = await prisma.candidate.count({
@@ -331,6 +336,8 @@ const deleteJob = async (req, res) => {
     await prisma.job.delete({
       where: { id }
     });
+
+    console.log("Offre supprimée avec succès, ID:", id);
 
     let message = 'Offre supprimée avec succès';
     if (candidatesCount > 0) {
@@ -343,6 +350,7 @@ const deleteJob = async (req, res) => {
       message
     );
   } catch (error) {
+    console.error("Détails de l'erreur:", error);
     logger.error(`Erreur lors de la suppression de l'offre: ${error.message}`);
     return respondWithError(res, 500, 'Erreur lors de la suppression de l\'offre', error.message);
   }

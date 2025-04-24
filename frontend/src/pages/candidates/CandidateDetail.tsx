@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { candidatesService } from '../../services/api';
 import {
   ArrowLeftIcon,
   UserCircleIcon,
@@ -78,6 +79,9 @@ const CandidateDetail: React.FC = () => {
       try {
         setIsLoading(true);
         setError(null);
+        const response = await candidatesService.getCandidate(id);
+        // const candidateData =response.data;
+        console.log(response);
         
         // Mock data for demonstration
         const mockCandidate: Candidate = {
@@ -166,13 +170,17 @@ const CandidateDetail: React.FC = () => {
           ],
           lastActivity: '2025-04-18'
         };
+
+        setCandidate(response.data);
+      setCurrentStatus(response.data.status);
+      setIsLoading(false);
         
-        // Simulate API delay
-        setTimeout(() => {
-          setCandidate(mockCandidate);
-          setCurrentStatus(mockCandidate.status);
-          setIsLoading(false);
-        }, 800);
+        // // Simulate API delay
+        // setTimeout(() => {
+        //   setCandidate(mockCandidate);
+        //   setCurrentStatus(mockCandidate.status);
+        //   setIsLoading(false);
+        // }, 800);
       } catch (err: any) {
         console.error('Error fetching candidate details:', err);
         setError(err.message || 'Une erreur est survenue');
@@ -187,7 +195,7 @@ const CandidateDetail: React.FC = () => {
     try {
       // In a real app, this would be an API call
       // await axios.post(`/api/candidates/${id}/status`, { status: newStatus });
-      
+      await candidatesService.updateCandidateStatus(id, newStatus);
       setCurrentStatus(newStatus);
       setCandidate(prev => prev ? { ...prev, status: newStatus } : null);
       
@@ -204,7 +212,8 @@ const CandidateDetail: React.FC = () => {
     try {
       // In a real app, this would be an API call
       // const response = await axios.post(`/api/candidates/${id}/notes`, { text: newNote });
-      
+      const response = await candidatesService.addCandidateNote(id, newNote);
+
       const newNoteObj = {
         id: Math.random().toString(36).substr(2, 9),
         text: newNote,
@@ -214,7 +223,7 @@ const CandidateDetail: React.FC = () => {
       
       setCandidate(prev => prev ? {
         ...prev,
-        notes: [newNoteObj, ...prev.notes]
+        notes: [response, ...prev.notes]
       } : null);
       
       setNewNote('');
@@ -407,21 +416,21 @@ const CandidateDetail: React.FC = () => {
           {/* Skills section */}
           <Card title="Compétences" padding="normal">
             <div className="flex flex-wrap gap-2">
-              {candidate.skills.map((skill, index) => (
+              {candidate?.skills?.map((skill, index) => (
                 <span
                   key={index}
                   className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800"
                 >
                   {skill}
                 </span>
-              ))}
+              ))|| []}
             </div>
           </Card>
 
           {/* Work Experience */}
           <Card title="Expérience professionnelle" padding="normal">
             <div className="space-y-6">
-              {candidate.workExperience.map((experience, index) => (
+              {candidate?.workExperience?.map((experience, index) => (
                 <div key={index} className="border-l-2 border-gray-200 pl-4 pb-2">
                   <h3 className="text-lg font-medium text-gray-900">{experience.position}</h3>
                   <div className="flex items-center mt-1 mb-2">
@@ -432,14 +441,15 @@ const CandidateDetail: React.FC = () => {
                   </div>
                   <p className="text-sm text-gray-600">{experience.description}</p>
                 </div>
-              ))}
+              ))|| []}
             </div>
           </Card>
 
           {/* Education */}
           <Card title="Formation" padding="normal">
             <div className="space-y-4">
-              {candidate.education.map((edu, index) => (
+              {Array.isArray(candidate.education) 
+                  ? candidate.education.map((edu, index) => (
                 <div key={index} className="border-l-2 border-gray-200 pl-4 pb-2">
                   <h3 className="text-base font-medium text-gray-900">{edu.degree}</h3>
                   <div className="flex items-center mt-1">
@@ -449,25 +459,30 @@ const CandidateDetail: React.FC = () => {
                     <span className="text-sm text-gray-700">{edu.year}</span>
                   </div>
                 </div>
-              ))}
+              ))
+              : candidate.education && (
+                <div>{candidate.education}</div>
+              )
+            
+            }
             </div>
           </Card>
 
           {/* Languages */}
           <Card title="Langues" padding="normal">
             <div className="space-y-2">
-              {candidate.languages.map((language, index) => (
+              {candidate?.languages?.map((language, index) => (
                 <div key={index} className="flex items-center">
                   <span className="text-sm text-gray-900">{language}</span>
                 </div>
-              ))}
+              ))|| []}
             </div>
           </Card>
 
           {/* Documents */}
           <Card title="Documents" padding="normal">
             <div className="space-y-3">
-              {candidate.documents.map((doc) => (
+              {candidate?.documents?.map((doc) => (
                 <div key={doc.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
                   <div className="flex items-center">
                     <div className="bg-gray-100 p-2 rounded-md">
@@ -487,7 +502,7 @@ const CandidateDetail: React.FC = () => {
                     Télécharger
                   </a>
                 </div>
-              ))}
+              ))|| []}
             </div>
           </Card>
         </div>
@@ -634,7 +649,7 @@ const CandidateDetail: React.FC = () => {
               </div>
               
               <div className="space-y-3">
-                {candidate.notes.map((note) => (
+                {candidate?.notes?.map((note) => (
                   <div key={note.id} className="p-3 bg-gray-50 rounded-md">
                     <p className="text-sm text-gray-900">{note.text}</p>
                     <div className="mt-2 flex justify-between text-xs text-gray-500">
@@ -642,7 +657,7 @@ const CandidateDetail: React.FC = () => {
                       <span>{formatDate(note.date)}</span>
                     </div>
                   </div>
-                ))}
+                ))|| []}
               </div>
             </div>
           </Card>

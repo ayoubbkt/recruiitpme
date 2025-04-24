@@ -85,8 +85,8 @@ const sendEmail = async (to, subject, html, text) => {
  * @param {String} token - Token de vérification
  */
 const sendWelcomeEmail = async (user, token) => {
-  const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
-  
+  const verificationLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
+    
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2>Bienvenue sur RecrutPME !</h2>

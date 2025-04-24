@@ -46,6 +46,7 @@ const Register: React.FC = () => {
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
+      
       setApiError(null);
       await registerUser({
         firstName: data.firstName,
@@ -60,7 +61,7 @@ const Register: React.FC = () => {
         navigate('/login');
       }, 3000);
     } catch (error: any) {
-      console.error('Registration error:', error);
+      console.error('Registration error:',  error.response?.data);
       setApiError(
         error.response?.data?.message || 'Une erreur est survenue lors de l\'inscription'
       );

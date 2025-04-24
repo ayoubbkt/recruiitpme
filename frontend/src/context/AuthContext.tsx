@@ -71,11 +71,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       const response = await authService.login(email, password);
-      const { token: newToken, user: userData } = response;
+      const { token, user } = response.data;
       
-      localStorage.setItem('token', newToken);
-      setToken(newToken);
-      setUser(userData);
+      // Assurez-vous que cette ligne est bien exécutée
+      localStorage.setItem('token', token);
+      
+      // Stockage dans l'état
+      setToken(token);
+      setUser(user);
       setIsAuthenticated(true);
     } catch (error: any) {
       console.error('Login error:', error);

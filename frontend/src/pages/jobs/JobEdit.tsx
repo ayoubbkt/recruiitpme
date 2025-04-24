@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { jobsService } from '../../services/api'; 
 import {
   ArrowLeftIcon,
   TagIcon,
@@ -55,110 +56,154 @@ const JobEdit: React.FC = () => {
   });
 
   // Fetch job data
-  useEffect(() => {
-    const fetchJobDetails = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+//   useEffect(() => {
+//     const fetchJobDetails = async () => {
+//       try {
+//         setLoading(true);
+//         setError(null);
         
-        // In a real application, this would be an API call
-        // const response = await axios.get(`/api/jobs/${id}`);
-        // const jobData = response.data;
+//         // In a real application, this would be an API call
+//         // const response = await axios.get(`/api/jobs/${id}`);
+//         // const jobData = response.data;
         
-        // Mock data for demonstration
-        const mockJob: Job = {
-          id: id || '1',
-          title: 'Développeur Full Stack',
-          location: 'Paris, France',
-          contractType: 'cdi',
-          status: 'active',
-          salary: '45 000€ - 55 000€ / an',
-          experienceLevel: 'intermediate',
-          languages: 'Français, Anglais',
-          startDate: '2025-06-01',
-          description: `## Description du poste
+//         // Mock data for demonstration
+//         const mockJob: Job = {
+//           id: id || '1',
+//           title: 'Développeur Full Stack',
+//           location: 'Paris, France',
+//           contractType: 'cdi',
+//           status: 'active',
+//           salary: '45 000€ - 55 000€ / an',
+//           experienceLevel: 'intermediate',
+//           languages: 'Français, Anglais',
+//           startDate: '2025-06-01',
+//           description: `## Description du poste
 
-Nous recherchons un développeur Full Stack passionné pour rejoindre notre équipe à Paris. Vous travaillerez sur le développement de nouvelles fonctionnalités et l'amélioration de notre plateforme existante.
+// Nous recherchons un développeur Full Stack passionné pour rejoindre notre équipe à Paris. Vous travaillerez sur le développement de nouvelles fonctionnalités et l'amélioration de notre plateforme existante.
 
-## Responsabilités
+// ## Responsabilités
 
-- Développer des fonctionnalités front-end et back-end
-- Collaborer avec les designers et les product managers
-- Participer aux revues de code et au debugging
-- Contribuer à l'architecture technique
+// - Développer des fonctionnalités front-end et back-end
+// - Collaborer avec les designers et les product managers
+// - Participer aux revues de code et au debugging
+// - Contribuer à l'architecture technique
 
-## Profil recherché
+// ## Profil recherché
 
-- 3+ ans d'expérience en développement web
-- Maîtrise de JavaScript/TypeScript, React, Node.js
-- Expérience avec les bases de données SQL et NoSQL
-- Connaissances en DevOps (CI/CD, Docker) est un plus`,
-          skills: [
-            'JavaScript',
-            'TypeScript',
-            'React',
-            'Node.js',
-            'SQL',
-            'Git',
-            'Docker',
-          ],
-          pipelineStages: [
-            'À contacter',
-            'Entretien RH',
-            'Test technique',
-            'Entretien final',
-            'Proposition',
-            'Embauché',
-          ],
-          createdAt: '2025-03-15',
-          updatedAt: '2025-04-10',
-          candidates: {
-            total: 12,
-            byStatus: {
-              new: 3,
-              toContact: 4,
-              interview: 2,
-              rejected: 2,
-              hired: 1,
-            },
-          },
-        };
+// - 3+ ans d'expérience en développement web
+// - Maîtrise de JavaScript/TypeScript, React, Node.js
+// - Expérience avec les bases de données SQL et NoSQL
+// - Connaissances en DevOps (CI/CD, Docker) est un plus`,
+//           skills: [
+//             'JavaScript',
+//             'TypeScript',
+//             'React',
+//             'Node.js',
+//             'SQL',
+//             'Git',
+//             'Docker',
+//           ],
+//           pipelineStages: [
+//             'À contacter',
+//             'Entretien RH',
+//             'Test technique',
+//             'Entretien final',
+//             'Proposition',
+//             'Embauché',
+//           ],
+//           createdAt: '2025-03-15',
+//           updatedAt: '2025-04-10',
+//           candidates: {
+//             total: 12,
+//             byStatus: {
+//               new: 3,
+//               toContact: 4,
+//               interview: 2,
+//               rejected: 2,
+//               hired: 1,
+//             },
+//           },
+//         };
         
-        // Simulate API delay
-        setTimeout(() => {
-          setJob(mockJob);
-          setSkills(mockJob.skills);
-          setPipelineStages(mockJob.pipelineStages);
+//         // Simulate API delay
+//         setTimeout(() => {
+//           setJob(mockJob);
+//           setSkills(mockJob.skills);
+//           setPipelineStages(mockJob.pipelineStages);
           
-          // Reset form with job data
-          reset({
-            title: mockJob.title,
-            location: mockJob.location,
-            contractType: mockJob.contractType,
-            salary: mockJob.salary || '',
-            experienceLevel: mockJob.experienceLevel,
-            startDate: mockJob.startDate || '',
-            languages: mockJob.languages || '',
-            description: mockJob.description,
-            status: mockJob.status,
-          });
+//           // Reset form with job data
+//           reset({
+//             title: mockJob.title,
+//             location: mockJob.location,
+//             contractType: mockJob.contractType,
+//             salary: mockJob.salary || '',
+//             experienceLevel: mockJob.experienceLevel,
+//             startDate: mockJob.startDate || '',
+//             languages: mockJob.languages || '',
+//             description: mockJob.description,
+//             status: mockJob.status,
+//           });
           
-          setLoading(false);
-        }, 800);
-      } catch (err: any) {
-        console.error('Error fetching job details:', err);
-        setError(err.message || 'Une erreur est survenue');
-        setLoading(false);
-      }
-    };
+//           setLoading(false);
+//         }, 800);
+//       } catch (err: any) {
+//         console.error('Error fetching job details:', err);
+//         setError(err.message || 'Une erreur est survenue');
+//         setLoading(false);
+//       }
+//     };
 
-    if (id) {
-      fetchJobDetails();
-    } else {
-      setError('ID de l\'offre non spécifié');
+//     if (id) {
+//       fetchJobDetails();
+//     } else {
+//       setError('ID de l\'offre non spécifié');
+//       setLoading(false);
+//     }
+//   }, [id, reset]);
+
+useEffect(() => {
+  const fetchJobDetails = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Appel API réel
+      const response = await jobsService.getJob(id);
+      const jobData = response.data;
+      
+      // Mettre à jour l'état avec les données récupérées
+      setJob(jobData);
+      setSkills(jobData.skills);
+      setPipelineStages(jobData.pipelineStages);
+      
+      // Reset form with job data
+      reset({
+        title: jobData.title,
+        location: jobData.location,
+        contractType: jobData.contractType,
+        salary: jobData.salary || '',
+        experienceLevel: jobData.experienceLevel,
+        startDate: jobData.startDate ? jobData.startDate.split('T')[0] : '',
+        languages: jobData.languages || '',
+        description: jobData.description,
+        status: jobData.status,
+      });
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching job details:', err);
+      setError(err.message || 'Une erreur est survenue');
       setLoading(false);
     }
-  }, [id, reset]);
+  };
+
+  if (id) {
+    fetchJobDetails();
+  } else {
+    setError('ID de l\'offre non spécifié');
+    setLoading(false);
+  }
+}, [id, reset]);
 
   const handleAddSkill = () => {
     if (newSkill.trim() && !skills.includes(newSkill.trim())) {
@@ -209,9 +254,9 @@ Nous recherchons un développeur Full Stack passionné pour rejoindre notre équ
       
       // In a real application, this would be an API call
       // await axios.put(`/api/jobs/${id}`, jobData);
-      
+      await jobsService.updateJob(id, jobData);
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Redirect to job details page
       navigate(`/app/jobs/${id}`);

@@ -32,18 +32,24 @@ const respondWithSuccess = (res, statusCode, message, data, pagination) => {
    * @param {String} message - Message d'erreur
    * @param {Object} errors - Erreurs détaillées (facultatif)
    */
-  const respondWithError = (res, statusCode, message, errors) => {
-    const response = {
-      success: false,
-      message
-    };
+ // Dans utils/apiResponse.js
+const respondWithError = (res, statusCode, message, errors) => {
+  // En environnement de production, ne pas exposer les détails techniques
+  const isProduction = process.env.NODE_ENV === 'production';
   
-    if (errors) {
-      response.errors = errors;
-    }
-  
-    return res.status(statusCode).json(response);
+  const response = {
+    success: false,
+    message: isProduction && statusCode === 500 ? 
+      "Une erreur interne est survenue" : message
   };
+
+  // En développement uniquement, inclure les détails d'erreur
+  if (!isProduction && errors) {
+    response.errors = errors;
+  }
+
+  return res.status(statusCode).json(response);
+};
   
   /**
    * Crée un objet pagination

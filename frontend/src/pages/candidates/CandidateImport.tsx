@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { jobsService, candidatesService } from '../../services/api';
 import {
   ArrowLeftIcon,
   DocumentArrowUpIcon,
@@ -41,38 +42,62 @@ const CandidateImport: React.FC = () => {
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
   // Fetch available jobs on mount
+  // useEffect(() => {
+  //   const fetchJobs = async () => {
+  //     try {
+  //       // Mock data for demonstration
+  //       const mockJobs: Job[] = [
+  //         { id: '1', title: 'Développeur Full Stack' },
+  //         { id: '2', title: 'UX Designer Senior' },
+  //         { id: '3', title: 'Chef de Projet IT' },
+  //         { id: '4', title: 'Développeur Frontend React' },
+  //         { id: '5', title: 'DevOps Engineer' },
+  //       ];
+        
+  //       // Simulate API delay
+  //       setTimeout(() => {
+  //         setJobs(mockJobs);
+          
+  //         // If there's a preselected job and it exists in our list, select it
+  //         if (preselectedJobId) {
+  //           const jobExists = mockJobs.some(job => job.id === preselectedJobId);
+  //           if (jobExists) {
+  //             setSelectedJobId(preselectedJobId);
+  //           } else {
+  //             setError('L\'offre d\'emploi spécifiée n\'existe pas.');
+  //           }
+  //         }
+  //       }, 500);
+  //     } catch (err) {
+  //       console.error('Error fetching jobs:', err);
+  //       setError('Impossible de charger les offres d\'emploi.');
+  //     }
+  //   };
+
+  //   fetchJobs();
+  // }, [preselectedJobId]);
+
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        // Mock data for demonstration
-        const mockJobs: Job[] = [
-          { id: '1', title: 'Développeur Full Stack' },
-          { id: '2', title: 'UX Designer Senior' },
-          { id: '3', title: 'Chef de Projet IT' },
-          { id: '4', title: 'Développeur Frontend React' },
-          { id: '5', title: 'DevOps Engineer' },
-        ];
+        const response = await jobsService.getJobs({ status: 'active' });
+        setJobs(response.data);
         
-        // Simulate API delay
-        setTimeout(() => {
-          setJobs(mockJobs);
-          
-          // If there's a preselected job and it exists in our list, select it
-          if (preselectedJobId) {
-            const jobExists = mockJobs.some(job => job.id === preselectedJobId);
-            if (jobExists) {
-              setSelectedJobId(preselectedJobId);
-            } else {
-              setError('L\'offre d\'emploi spécifiée n\'existe pas.');
-            }
+        // Si préselectionné, vérifier que l'offre existe
+        if (preselectedJobId) {
+          const jobExists = response.data.some(job => job.id === preselectedJobId);
+          if (jobExists) {
+            setSelectedJobId(preselectedJobId);
+          } else {
+            setError('L\'offre d\'emploi spécifiée n\'existe pas.');
           }
-        }, 500);
+        }
       } catch (err) {
         console.error('Error fetching jobs:', err);
         setError('Impossible de charger les offres d\'emploi.');
       }
     };
-
+  
     fetchJobs();
   }, [preselectedJobId]);
 
@@ -132,7 +157,8 @@ const CandidateImport: React.FC = () => {
       }
       
       // Simulate API call for file upload
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // await new Promise(resolve => setTimeout(resolve, 500));
+      await candidatesService.uploadCandidateFiles(selectedJobId, files);
       
       setIsUploading(false);
       setIsAnalyzing(true);
