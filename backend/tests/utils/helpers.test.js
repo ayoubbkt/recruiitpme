@@ -1,10 +1,4 @@
-const {
-    generateToken,
-    daysBetweenDates,
-    getCvFileUrl,
-    extractCvInfo,
-    calculateMatchingScore,
-  } = require('../../../utils/helpers');
+const { generateToken, daysBetweenDates, getCvFileUrl, extractCvInfo, calculateMatchingScore } = require('../../utils/helpers');
   
   describe('Helpers', () => {
     describe('generateToken', () => {
