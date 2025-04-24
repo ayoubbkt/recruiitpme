@@ -148,6 +148,7 @@ const { generateToken, daysBetweenDates, getCvFileUrl, extractCvInfo, calculateM
           experienceLevel: 'intermediate',
           languages: 'English, French',
         };
+        
   
         const score = calculateMatchingScore(candidate, job);
         expect(score).toBe(0);

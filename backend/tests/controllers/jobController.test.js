@@ -362,6 +362,7 @@ describe('Job Controller', () => {
       matchingService.recalculateScoresAfterJobUpdate.mockResolvedValue(true);
         prisma.job.update.mockResolvedValue(updatedJob);
 
+        
         // puis modifier l'attente:
         expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({

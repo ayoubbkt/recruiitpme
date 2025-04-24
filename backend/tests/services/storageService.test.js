@@ -49,6 +49,8 @@ describe('Storage Service', () => {
     process.env.NODE_ENV = 'production';
   process.env.AWS_BUCKET_NAME = 'test-bucket';
   
+  
+
   // Réinitialiser le mock AWS
   jest.clearAllMocks();
   });

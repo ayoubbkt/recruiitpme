@@ -366,6 +366,7 @@ describe('uploadAndAnalyzeCV', () => {
   });
 }, 60000);
 
+
 describe('updateCandidateStatus', () => {
   it('should update candidate status', async () => {
     // Arrange

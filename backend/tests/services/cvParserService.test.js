@@ -222,6 +222,7 @@ describe('CV Parser Service', () => {
           error: mockError.message
         }
       ]);
+      
     } 120000);
   });
 });
