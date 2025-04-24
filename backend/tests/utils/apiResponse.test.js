@@ -1,160 +1,177 @@
-const { respondWithSuccess, respondWithError, createPagination } = require('../../../utils/apiResponse');
+const { respondWithSuccess, respondWithError, createPagination } = require('../../utils/apiResponse');
 
 describe('API Response Utilities', () => {
+  let mockResponse;
+  let originalNodeEnv;
+
+  beforeEach(() => {
+    mockResponse = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn()
+    };
+    
+    // Sauvegarder l'environnement original
+    originalNodeEnv = process.env.NODE_ENV;
+  });
+
+  afterEach(() => {
+    // Restaurer l'environnement
+    process.env.NODE_ENV = originalNodeEnv;
+  });
+
   describe('respondWithSuccess', () => {
-    it('formats a success response correctly', () => {
-      const res = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn(),
-      };
-
+    it('should respond with success and data', () => {
+      const statusCode = 200;
+      const message = 'Success message';
       const data = { id: 1, name: 'Test' };
-      respondWithSuccess(res, 200, 'Success message', data);
-
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
+      
+      respondWithSuccess(mockResponse, statusCode, message, data);
+      
+      expect(mockResponse.status).toHaveBeenCalledWith(statusCode);
+      expect(mockResponse.json).toHaveBeenCalledWith({
         success: true,
-        message: 'Success message',
-        data,
+        message,
+        data
       });
     });
 
-    it('includes pagination when provided', () => {
-      const res = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn(),
-      };
-
+    it('should include pagination information when provided', () => {
+      const statusCode = 200;
+      const message = 'Paginated data';
       const data = [{ id: 1 }, { id: 2 }];
-      const pagination = { page: 1, limit: 10, total: 2, totalPages: 1 };
+      const pagination = { page: 1, limit: 10, total: 20, totalPages: 2 };
       
-      respondWithSuccess(res, 200, 'Success with pagination', data, pagination);
-
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
+      respondWithSuccess(mockResponse, statusCode, message, data, pagination);
+      
+      expect(mockResponse.status).toHaveBeenCalledWith(statusCode);
+      expect(mockResponse.json).toHaveBeenCalledWith({
         success: true,
-        message: 'Success with pagination',
+        message,
         data,
-        pagination,
+        pagination
       });
     });
   });
 
   describe('respondWithError', () => {
-    const originalNodeEnv = process.env.NODE_ENV;
-
-    afterEach(() => {
-      process.env.NODE_ENV = originalNodeEnv;
-    });
-
-    it('formats an error response correctly', () => {
-      const res = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn(),
-      };
-
-      respondWithError(res, 400, 'Error message');
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
+    it('should respond with error message', () => {
+      const statusCode = 400;
+      const message = 'Validation error';
+      
+      respondWithError(mockResponse, statusCode, message);
+      
+      expect(mockResponse.status).toHaveBeenCalledWith(statusCode);
+      expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Error message',
+        message
       });
     });
 
-    it('includes error details in development mode', () => {
+    it('should mask internal server errors in production', () => {
+      process.env.NODE_ENV = 'production';
+      const statusCode = 500;
+      const message = 'Database connection failed';
+      
+      respondWithError(mockResponse, statusCode, message);
+      
+      expect(mockResponse.status).toHaveBeenCalledWith(statusCode);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Une erreur interne est survenue'
+      });
+    });
+
+    it('should show original error message for non-500 errors in production', () => {
+      process.env.NODE_ENV = 'production';
+      const statusCode = 404;
+      const message = 'Resource not found';
+      
+      respondWithError(mockResponse, statusCode, message);
+      
+      expect(mockResponse.status).toHaveBeenCalledWith(statusCode);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message
+      });
+    });
+
+    it('should include error details in development', () => {
       process.env.NODE_ENV = 'development';
-      const res = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn(),
-      };
-
-      respondWithError(res, 400, 'Error message', 'Error details');
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
+      const statusCode = 500;
+      const message = 'Database error';
+      const errors = { details: 'Connection timeout' };
+      
+      respondWithError(mockResponse, statusCode, message, errors);
+      
+      expect(mockResponse.status).toHaveBeenCalledWith(statusCode);
+      expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Error message',
-        errors: 'Error details',
+        message,
+        errors
       });
     });
 
-    it('omits error details in production mode', () => {
+    it('should not include error details in production', () => {
       process.env.NODE_ENV = 'production';
-      const res = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn(),
-      };
-
-      respondWithError(res, 400, 'Error message', 'Error details');
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
+      const statusCode = 500;
+      const message = 'Database error';
+      const errors = { details: 'Connection timeout' };
+      
+      respondWithError(mockResponse, statusCode, message, errors);
+      
+      expect(mockResponse.status).toHaveBeenCalledWith(statusCode);
+      expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Error message',
+        message: 'Une erreur interne est survenue'
       });
-    });
-
-    it('sanitizes internal server error messages in production', () => {
-      process.env.NODE_ENV = 'production';
-      const res = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn(),
-      };
-
-      respondWithError(res, 500, 'Database connection failed', 'Error details');
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: 'Une erreur interne est survenue',
-      });
+      expect(mockResponse.json.mock.calls[0][0].errors).toBeUndefined();
     });
   });
 
   describe('createPagination', () => {
-    it('creates a pagination object with correct values', () => {
+    it('should create proper pagination object', () => {
       const page = 2;
       const limit = 10;
       const total = 25;
-
+      
       const pagination = createPagination(page, limit, total);
-
+      
       expect(pagination).toEqual({
         page: 2,
         limit: 10,
         total: 25,
-        totalPages: 3, // 25 / 10 = 2.5, rounded up to 3
+        totalPages: 3 // Math.ceil(25/10) = 3
       });
     });
 
-    it('handles string inputs by converting to integers', () => {
+    it('should convert string inputs to integers', () => {
       const page = '2';
       const limit = '10';
       const total = 25;
-
+      
       const pagination = createPagination(page, limit, total);
-
+      
       expect(pagination).toEqual({
         page: 2,
         limit: 10,
         total: 25,
-        totalPages: 3,
+        totalPages: 3
       });
     });
 
-    it('calculates correct number of pages', () => {
-      // Exact division
-      expect(createPagination(1, 5, 15).totalPages).toBe(3);
-
-      // Division with remainder
-      expect(createPagination(1, 10, 25).totalPages).toBe(3);
-
-      // Small dataset
-      expect(createPagination(1, 10, 5).totalPages).toBe(1);
-
-      // Empty dataset
-      expect(createPagination(1, 10, 0).totalPages).toBe(0);
+    it('should calculate correct total pages', () => {
+      const testCases = [
+        { page: 1, limit: 10, total: 5, expected: 1 },   // Less than limit
+        { page: 1, limit: 10, total: 10, expected: 1 },  // Equal to limit
+        { page: 1, limit: 10, total: 11, expected: 2 },  // Just over limit
+        { page: 3, limit: 5, total: 21, expected: 5 },   // Multiple pages
+        { page: 1, limit: 100, total: 0, expected: 0 }   // No items
+      ];
+      
+      testCases.forEach(test => {
+        const pagination = createPagination(test.page, test.limit, test.total);
+        expect(pagination.totalPages).toBe(test.expected);
+      });
     });
   });
 });
