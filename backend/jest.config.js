@@ -1,6 +1,6 @@
 module.exports = {
     testEnvironment: 'node',
-    moduleDirectoryPaths: ['node_modules', 'src'],
+    modulePaths: ['node_modules', 'src'],
     moduleNameMapper: {
       '^@/(.*)$': '<rootDir>/$1',
       '^winston$': '<rootDir>/tests/mocks/winston.js'

@@ -24,11 +24,17 @@ jest.mock('../../middleware/auth', () => ({
 }));
 
 jest.mock('../../middleware/upload', () => ({
-  uploadCV: {
-    array: jest.fn(() => (req, res, next) => next())
-  },
-  handleUploadError: jest.fn((err, req, res, next) => next())
-}));
+    uploadCV: {
+      array: jest.fn(() => (req, res, next) => next())
+    },
+    handleUploadError: jest.fn((err, req, res, next) => next())
+  }));
+
+  beforeEach(() => {
+    // Reset des mocks
+    jest.clearAllMocks();
+    uploadCV.array.mockImplementation(() => (req, res, next) => next());
+  });
 
 jest.mock('../../middleware/validation', () => ({
   validate: () => (req, res, next) => next()

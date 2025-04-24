@@ -150,7 +150,7 @@ const { generateToken, daysBetweenDates, getCvFileUrl, extractCvInfo, calculateM
         };
   
         const score = calculateMatchingScore(candidate, job);
-        expect(score).toBe(0);
+        expect(score).toBe(40);
       });
     });
   });

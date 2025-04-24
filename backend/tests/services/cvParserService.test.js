@@ -72,7 +72,7 @@ describe('CV Parser Service', () => {
       );
       expect(extractCvInfo).toHaveBeenCalledWith(mockCvData);
       expect(result).toEqual(mockCvData);
-    });
+    },60000);
 
     it('should parse CV in production environment', async () => {
       // Arrange

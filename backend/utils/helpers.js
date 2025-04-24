@@ -72,6 +72,10 @@ const calculateMatchingScore = (candidate, job) => {
   // Matching des compétences (60% du score total)
   const skillsWeight = 60;
   maxScore += skillsWeight;
+
+  if (!job.skills || job.skills.length === 0) {
+    return 0;
+  }
   
   if (job.skills && job.skills.length > 0 && candidate.skills && candidate.skills.length > 0) {
     // Convertir en minuscules pour une comparaison insensible à la casse

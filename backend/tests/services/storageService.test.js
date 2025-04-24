@@ -5,15 +5,15 @@ const storageService = require('../../services/storageService');
 
 // Mocks
 jest.mock('aws-sdk', () => {
-  const mockS3Instance = {
-    getSignedUrlPromise: jest.fn(),
-    deleteObject: jest.fn().mockReturnValue({
-      promise: jest.fn().mockResolvedValue({})
-    }),
-    copyObject: jest.fn().mockReturnValue({
-      promise: jest.fn().mockResolvedValue({})
-    })
-  };
+    const mockS3Instance = {
+      getSignedUrlPromise: jest.fn().mockResolvedValue('https://mocked-url.com/file.pdf'),
+      deleteObject: jest.fn().mockReturnValue({
+        promise: jest.fn().mockResolvedValue({})
+      }),
+      copyObject: jest.fn().mockReturnValue({
+        promise: jest.fn().mockResolvedValue({})
+      })
+    };
   
   return {
     S3: jest.fn(() => mockS3Instance),

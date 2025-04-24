@@ -65,6 +65,7 @@ describe('Matching Service', () => {
   });
 
   describe('updateCandidateMatchingScore', () => {
+    matchingService.matchCandidateWithJob = jest.fn().mockReturnValue(90);
     it('should update candidate matching score', async () => {
       // Arrange
       const candidateId = '1';
