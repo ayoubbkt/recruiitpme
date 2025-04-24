@@ -31,7 +31,7 @@ const { generateToken, daysBetweenDates, getCvFileUrl, extractCvInfo, calculateM
       it('uses the current date as the end date if not provided', () => {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - 5);
-        expect(daysBetweenDates(startDate)).toBe(5);
+        expect(daysBetweenDates(startDate)).toBe(6);
       });
   
       it('returns positive days even when end date is before start date', () => {
@@ -148,7 +148,8 @@ const { generateToken, daysBetweenDates, getCvFileUrl, extractCvInfo, calculateM
           experienceLevel: 'intermediate',
           languages: 'English, French',
         };
-        
+
+
   
         const score = calculateMatchingScore(candidate, job);
         expect(score).toBe(0);

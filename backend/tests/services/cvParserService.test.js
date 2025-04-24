@@ -123,7 +123,7 @@ describe('CV Parser Service', () => {
       expect(result).toEqual(expect.objectContaining({
         name: 'Jean DUPONT'
       }));
-    } 120000);
+    }, 120000);
 
     it('should throw error if parsing fails and fallback not applicable', async () => {
       // Arrange
@@ -137,7 +137,7 @@ describe('CV Parser Service', () => {
       // Act & Assert
       await expect(cvParserService.parseCV(filePath)).rejects.toThrow('Erreur lors de l\'analyse du CV');
       expect(logger.error).toHaveBeenCalled();
-    } 120000);
+    }, 120000);
   });
 
   describe('parseBatch', () => {
@@ -185,7 +185,7 @@ describe('CV Parser Service', () => {
           data: mockResults[1]
         }
       ]);
-    } 120000);
+    }, 120000);
 
     it('should handle parse errors for individual files', async () => {
       // Arrange
@@ -222,7 +222,8 @@ describe('CV Parser Service', () => {
           error: mockError.message
         }
       ]);
-      
-    } 120000);
+
+
+    }, 120000);
   });
 });

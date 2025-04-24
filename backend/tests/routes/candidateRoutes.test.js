@@ -22,7 +22,7 @@ jest.mock('../../middleware/auth', () => ({
     next();
   })
 }));
-const mockArray = jest.fn(() => (req, res, next) => next());
+const mockArray = jest.fn().mockImplementation(() => (req, res, next) => next());
 
 jest.mock('../../middleware/upload', () => ({
   uploadCV: {

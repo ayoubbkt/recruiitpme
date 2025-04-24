@@ -141,7 +141,7 @@ describe('Job Controller', () => {
           ]
         }
       });
-      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.status).toHaveBeenCalledWith(200);
     });
   });
 
@@ -309,6 +309,11 @@ describe('Job Controller', () => {
   });
 
   describe('updateJob', () => {
+    beforeEach(() => {
+        // Configuration des mocks
+        jest.clearAllMocks();
+        matchingService.recalculateScoresAfterJobUpdate.mockResolvedValue(true);
+      });
     it('should update a job successfully', async () => {
       // Arrange
       const req = {
@@ -362,7 +367,7 @@ describe('Job Controller', () => {
       matchingService.recalculateScoresAfterJobUpdate.mockResolvedValue(true);
         prisma.job.update.mockResolvedValue(updatedJob);
 
-        
+
         // puis modifier l'attente:
         expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({

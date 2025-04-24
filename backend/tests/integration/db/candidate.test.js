@@ -21,6 +21,7 @@ describe('Candidate Database Integration', () => {
     });
 
     // Create test job
+
     testJob = await prisma.job.create({
       data: {
         title: 'Test Job',
@@ -69,7 +70,7 @@ describe('Candidate Database Integration', () => {
         experience: 3,
         matchingScore: 85,
         status: 'new',
-        cvFile: 'test-cv.pdf',
+        resumeUrl: 'test-cv.pdf',
         jobId: testJob.id,
         userId: testUser.id
       }

@@ -268,15 +268,18 @@ describe('Matching Service', () => {
   });
 
   describe('recalculateScoresAfterJobUpdate', () => {
-    beforeEach(() => {
-        // Réinitialiser les mocks
-        jest.clearAllMocks();
-        // Configuration explicite du mock
-        calculateMatchingScore.mockReturnValue(90);
-        matchingService.matchCandidateWithJob = jest.fn().mockReturnValue(90);
-        // Mock pour éviter l'erreur de recalculateScoresAfterJobUpdate
-        matchingService.updateAllCandidatesForJob = jest.fn().mockResolvedValue([]);
-      });
+    // Dans le beforeEach, configurez correctement les mocks
+beforeEach(() => {
+    jest.clearAllMocks();
+    calculateMatchingScore.mockReturnValue(90);
+    
+    // Important: utilisez spyOn pour remplacer les méthodes existantes
+    jest.spyOn(matchingService, 'matchCandidateWithJob').mockReturnValue(90);
+    jest.spyOn(matchingService, 'updateAllCandidatesForJob').mockResolvedValue([]);
+    
+    // Pour le test de recalculateScoresAfterJobUpdate
+    prisma.job.findUnique.mockResolvedValue({ id: '1', title: 'Test Job' });
+  });
     it('should recalculate scores after job update', async () => {
         // Les mocks sont déjà configurés dans beforeEach
         const jobId = '1';
@@ -294,6 +297,7 @@ describe('Matching Service', () => {
       const jobId = '1';
       const error = new Error('Update failed');
       
+
       matchingService.updateAllCandidatesForJob = jest.fn().mockRejectedValue(error);
 
       // Act & Assert

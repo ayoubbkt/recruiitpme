@@ -4,6 +4,7 @@ const prisma = new PrismaClient();
 const { authenticate } = require('../../../middleware/auth');
 
 
+
 // Mock pour respondWithError
 jest.mock('../../../utils/apiResponse', () => ({
     respondWithError: jest.fn((res, code, message) => {

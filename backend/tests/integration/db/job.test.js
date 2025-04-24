@@ -127,8 +127,9 @@ describe('Job Database Integration', () => {
         candidates: true
       }
     });
-    
 
+
+    
     // Check candidates were created and linked to job
     expect(jobWithCandidates.candidates).toHaveLength(2);
     expect(jobWithCandidates.candidates.map(c => c.name)).toContain('John Doe');
