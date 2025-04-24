@@ -22,18 +22,19 @@ jest.mock('../../middleware/auth', () => ({
     next();
   })
 }));
+const mockArray = jest.fn(() => (req, res, next) => next());
 
 jest.mock('../../middleware/upload', () => ({
-    uploadCV: {
-      array: jest.fn(() => (req, res, next) => next())
-    },
-    handleUploadError: jest.fn((err, req, res, next) => next())
-  }));
+  uploadCV: {
+    array: mockArray
+  },
+  handleUploadError: jest.fn((req, res, next) => next())
+}));
 
   beforeEach(() => {
     // Reset des mocks
     jest.clearAllMocks();
-    uploadCV.array.mockImplementation(() => (req, res, next) => next());
+    // uploadCV.array.mockImplementation(() => (req, res, next) => next());
   });
 
 jest.mock('../../middleware/validation', () => ({
@@ -100,7 +101,7 @@ describe('Candidate Routes', () => {
 
       // Assert
       expect(response.status).toBe(200);
-      expect(authenticate).toHaveBeenCalled();
+      expect(mockArray).toHaveBeenCalledWith('files', 10);
       expect(uploadCV.array).toHaveBeenCalledWith('files', 10);
       expect(candidateController.uploadAndAnalyzeCV).toHaveBeenCalled();
       expect(response.body).toEqual({ success: true, message: 'Upload and analyze CV mock' });

@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { authenticate } = require('../../middleware/auth');
+const { authenticate } = require('../../../middleware/auth');
 
 // Mock pour respondWithError
 jest.mock('../../../utils/apiResponse', () => ({

@@ -112,7 +112,7 @@ describe('Job Database Integration', () => {
         experience: 5,
         matchingScore: 75,
         status: 'new',
-        cvFile: 'jane_cv.pdf',
+        resumeUrl: 'jane_cv.pdf',
         jobId: testJob.id,
         userId: testUser.id
       }

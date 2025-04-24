@@ -31,6 +31,8 @@ jest.mock('../../utils/logger', () => ({
 
 const prisma = new PrismaClient();
 
+
+
 describe('Matching Service', () => {
   afterEach(() => {
     jest.clearAllMocks();
@@ -266,25 +268,26 @@ describe('Matching Service', () => {
   });
 
   describe('recalculateScoresAfterJobUpdate', () => {
+    beforeEach(() => {
+        // Réinitialiser les mocks
+        jest.clearAllMocks();
+        // Configuration explicite du mock
+        calculateMatchingScore.mockReturnValue(90);
+        matchingService.matchCandidateWithJob = jest.fn().mockReturnValue(90);
+        // Mock pour éviter l'erreur de recalculateScoresAfterJobUpdate
+        matchingService.updateAllCandidatesForJob = jest.fn().mockResolvedValue([]);
+      });
     it('should recalculate scores after job update', async () => {
-      // Arrange
-      const jobId = '1';
-      
-      // Mock updateAllCandidatesForJob
-      const mockUpdatedCandidates = [
-        { id: '1', name: 'John Doe', matchingScore: 90 },
-        { id: '2', name: 'Jane Smith', matchingScore: 85 }
-      ];
-      
-      matchingService.updateAllCandidatesForJob = jest.fn().mockResolvedValue(mockUpdatedCandidates);
-
-      // Act
-      const result = await matchingService.recalculateScoresAfterJobUpdate(jobId);
-
-      // Assert
-      expect(matchingService.updateAllCandidatesForJob).toHaveBeenCalledWith(jobId);
-      expect(result).toBe(true);
-    });
+        // Les mocks sont déjà configurés dans beforeEach
+        const jobId = '1';
+  
+  // Act
+  const result = await matchingService.recalculateScoresAfterJobUpdate(jobId);
+  
+  // Assert
+  expect(matchingService.updateAllCandidatesForJob).toHaveBeenCalledWith(jobId);
+  expect(result).toBe(true);
+      });
 
     it('should throw error if update fails', async () => {
       // Arrange

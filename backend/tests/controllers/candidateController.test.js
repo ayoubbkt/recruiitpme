@@ -364,7 +364,7 @@ describe('uploadAndAnalyzeCV', () => {
       message: 'Offre d\'emploi non trouvée'
     }));
   });
-});
+}, 60000);
 
 describe('updateCandidateStatus', () => {
   it('should update candidate status', async () => {

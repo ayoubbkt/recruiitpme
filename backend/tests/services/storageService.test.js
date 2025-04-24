@@ -5,8 +5,8 @@ const storageService = require('../../services/storageService');
 
 // Mocks
 jest.mock('aws-sdk', () => {
-    const mockS3Instance = {
-      getSignedUrlPromise: jest.fn().mockResolvedValue('https://mocked-url.com/file.pdf'),
+    const mS3 = {
+      getSignedUrlPromise: jest.fn().mockResolvedValue('https://test-bucket.s3.amazonaws.com/cvs/test-file.pdf'),
       deleteObject: jest.fn().mockReturnValue({
         promise: jest.fn().mockResolvedValue({})
       }),
@@ -14,14 +14,14 @@ jest.mock('aws-sdk', () => {
         promise: jest.fn().mockResolvedValue({})
       })
     };
-  
-  return {
-    S3: jest.fn(() => mockS3Instance),
-    config: {
-      update: jest.fn()
-    }
-  };
-});
+    
+    return {
+      S3: jest.fn(() => mS3),
+      config: {
+        update: jest.fn()
+      }
+    };
+  });
 
 jest.mock('fs', () => ({
   existsSync: jest.fn(),
@@ -46,8 +46,11 @@ describe('Storage Service', () => {
   const mockS3 = new AWS.S3();
 
   beforeEach(() => {
-    originalNodeEnv = process.env.NODE_ENV;
-    jest.clearAllMocks();
+    process.env.NODE_ENV = 'production';
+  process.env.AWS_BUCKET_NAME = 'test-bucket';
+  
+  // Réinitialiser le mock AWS
+  jest.clearAllMocks();
   });
 
   afterEach(() => {
