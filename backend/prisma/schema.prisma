@@ -26,7 +26,7 @@ model User {
   lastLogin         DateTime?
 
   // Relations
-   //company             Company?                 // Relation one-to-one
+  company             Company?                 // Ajoutez cette ligne - relation vers Company
   notificationPreferences NotificationPreference?
   jobs         Job[]
   notes        Note[]
@@ -36,7 +36,6 @@ model User {
   @@map("users")
 }
 
-// Nouveau modèle pour les détails d'entreprise
 model Company {
   id          String   @id @default(uuid())
   address     String?
@@ -134,22 +133,23 @@ model Note {
 }
 
 model Interview {
-  id          String    @id @default(uuid())
-  date        DateTime
-  location    String?   // Could be physical location or video link
-  notes       String?
-  status      String    // scheduled, completed, canceled
-  feedback    String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
+  id              String    @id @default(uuid())
+  date            DateTime
+  time            String    // Stocke l'heure au format "HH:MM"
+  interviewerName String    // Stocke le nom saisi dans le formulaire
+  videoLink       String?   // Lien de visioconférence
+  location        String?   // Emplacement physique (si différent de videoLink)
+  notes           String?
+  status          String    // scheduled, completed, canceled, noShow
+  feedback        String?   // Compte-rendu d'entretien (ajouté après l'entretien)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
   // Relations
-  candidateId String
-  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  jobId       String
-  job         Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  interviewerId String
-  interviewer   User     @relation("Interviewer", fields: [interviewerId], references: [id])
-
-  @@map("interviews")
+  candidateId    String
+  candidate      Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  jobId          String
+  job            Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  interviewerId  String
+  user           User      @relation("Interviewer", fields: [interviewerId], references: [id])
 }

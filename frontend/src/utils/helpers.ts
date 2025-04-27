@@ -5,16 +5,22 @@
  * @returns Formatted date string
  */
 export const formatDate = (dateString: string, locale = 'fr-FR'): string => {
-    if (!dateString) return '';
-    
-    try {
-      const date = new Date(dateString);
-      return new Intl.DateTimeFormat(locale).format(date);
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return dateString;
+  if (!dateString) return '';
+  
+  try {
+    // Vérifier si la date est valide
+    const timestamp = Date.parse(dateString);
+    if (isNaN(timestamp)) {
+      return 'Date invalide';
     }
-  };
+    
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat(locale).format(date);
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Date invalide';
+  }
+};
   
   /**
    * Format a date with time

@@ -365,20 +365,7 @@ it('should return 404 if job not found', async () => {
       message: 'Offre d\'emploi non trouvée'
     }));
   }, 60000); // 60 secondes
-    prisma.job.findUnique.mockResolvedValue(null);
-
-    // Act
-    await candidateController.uploadAndAnalyzeCV(req, res);
-
-    // Assert
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      success: false,
-      message: 'Offre d\'emploi non trouvée'
-    }));
-  });
-}, 60000);
-
+    
 
 
 describe('updateCandidateStatus', () => {
@@ -569,5 +556,6 @@ describe('addCandidateNote', () => {
       message: 'Candidat non trouvé'
     }));
   });
+});
 });
 });

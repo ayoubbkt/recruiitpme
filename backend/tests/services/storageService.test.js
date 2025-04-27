@@ -7,7 +7,7 @@ const storageService = require('../../services/storageService');
 // Ajoutez ceci au début du fichier de test
 let mockS3Instance;
 
-jest.mock('aws-sdk', () => {
+beforeEach(() => {
   mockS3Instance = {
     getSignedUrlPromise: jest.fn().mockResolvedValue('https://test-bucket.s3.amazonaws.com/cvs/test-file.pdf'),
     deleteObject: jest.fn().mockReturnValue({
@@ -17,14 +17,14 @@ jest.mock('aws-sdk', () => {
       promise: jest.fn().mockResolvedValue({})
     })
   };
-  
-  return {
-    S3: jest.fn(() => mockS3Instance),
-    config: {
-      update: jest.fn()
-    }
-  };
 });
+
+jest.mock('aws-sdk', () => ({
+  S3: jest.fn(() => mockS3Instance),
+  config: {
+    update: jest.fn()
+  }
+}));
 
 // Dans le beforeEach, assurez-vous de réinitialiser s3
 

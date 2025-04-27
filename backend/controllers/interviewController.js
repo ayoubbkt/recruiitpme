@@ -218,9 +218,9 @@ const createInterview = async (req, res) => {
         candidateId,
         jobId: candidate.jobId,
         date: interviewDate,
-        time,
-        interviewer,
-        videoLink,
+        time,                      // Ajouté au schéma
+        interviewerName: interviewer, // Ajouté au schéma
+        videoLink,                 // Ajouté au schéma
         notes,
         status: 'scheduled',
         interviewerId: req.user.id// Associer l'entretien à l'utilisateur connecté si disponible

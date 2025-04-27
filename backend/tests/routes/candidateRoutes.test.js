@@ -6,6 +6,8 @@ const candidateController = require('../../controllers/candidateController');
 const { authenticate } = require('../../middleware/auth');
 const { uploadCV, handleUploadError } = require('../../middleware/upload');
 
+const mockArray = jest.fn().mockImplementation(() => (req, res, next) => next());
+
 // Mocks
 jest.mock('../../controllers/candidateController', () => ({
   getCandidates: jest.fn((req, res) => res.json({ success: true, message: 'Get candidates mock' })),
@@ -22,14 +24,13 @@ jest.mock('../../middleware/auth', () => ({
     next();
   })
 }));
-const mockArray = jest.fn().mockImplementation(() => (req, res, next) => next());
 
 jest.mock('../../middleware/upload', () => ({
-  uploadCV: {
-    array: mockArray
-  },
-  handleUploadError: jest.fn((req, res, next) => next())
-}));
+    uploadCV: {
+      array: mockArray
+    },
+    handleUploadError: jest.fn()
+  }));
 
   beforeEach(() => {
     // Reset des mocks

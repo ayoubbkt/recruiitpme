@@ -65,7 +65,7 @@ describe('Candidate Database Integration', () => {
         name: 'Test Candidate',
         email: 'test-candidate@example.com',
         phone: '123456789',
-        location: 'Test Location',
+        
         skills: ['JavaScript', 'React'],
         experience: 3,
         matchingScore: 85,
@@ -109,7 +109,7 @@ describe('Candidate Database Integration', () => {
     const note = await prisma.note.create({
       data: {
         content: 'Test note',
-        author: 'Test User',
+        // author: 'Test User',
         candidateId: testCandidate.id,
         userId: testUser.id
       }
