@@ -16,7 +16,7 @@
         "lint": "eslint ."
     },
     "dependencies": {
-        "@prisma/client": "^5.10.0",
+        "@prisma/client": "^6.7.0",
         "@sendgrid/mail": "^8.1.5",
         "aws-sdk": "^2.1692.0",
         "axios": "^1.6.0",
@@ -45,7 +45,7 @@
         "jest-mock-extended": "^3.0.4",
         "mock-fs": "^5.2.0",
         "nodemon": "^3.0.3",
-        "prisma": "^5.10.0",
+        "prisma": "^6.7.0",
         "supertest": "^6.3.4"
     },
     "engines": {
