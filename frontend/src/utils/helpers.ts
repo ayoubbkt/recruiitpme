@@ -8,19 +8,19 @@ export const formatDate = (dateString: string, locale = 'fr-FR'): string => {
   if (!dateString) return '';
   
   try {
-    // Vérifier si la date est valide
     const timestamp = Date.parse(dateString);
     if (isNaN(timestamp)) {
-      return 'Date invalide';
+      return 'Date non disponible';
     }
     
     const date = new Date(dateString);
     return new Intl.DateTimeFormat(locale).format(date);
   } catch (error) {
     console.error('Error formatting date:', error);
-    return 'Date invalide';
+    return 'Date non disponible';
   }
 };
+
   
   /**
    * Format a date with time

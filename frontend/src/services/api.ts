@@ -216,8 +216,10 @@ export const candidatesService = {
     return response.data;
   },
   
-  addCandidateNote: async (id: string, text: string) => {
-    const response = await api.post(`/candidates/${id}/notes`, { text });
+  addCandidateNote: async (id: string, content: string) => {
+     
+    const response = await api.post(`/candidates/${id}/notes`, { content });
+   
     return response.data;
   },
 };

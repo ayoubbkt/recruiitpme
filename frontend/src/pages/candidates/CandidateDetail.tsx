@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { candidatesService } from '../../services/api';
+import { formatDate } from '../../utils/helpers';
 import {
   ArrowLeftIcon,
   UserCircleIcon,
@@ -79,9 +80,10 @@ const CandidateDetail: React.FC = () => {
       try {
         setIsLoading(true);
         setError(null);
+        
         const response = await candidatesService.getCandidate(id);
         // const candidateData =response.data;
-        console.log(response);
+      
         
         // Mock data for demonstration
         const mockCandidate: Candidate = {
@@ -171,7 +173,8 @@ const CandidateDetail: React.FC = () => {
           lastActivity: '2025-04-18'
         };
 
-        setCandidate(response.data);
+        setCandidate(response.data); 
+        
       setCurrentStatus(response.data.status);
       setIsLoading(false);
         
@@ -213,12 +216,12 @@ const CandidateDetail: React.FC = () => {
       // In a real app, this would be an API call
       // const response = await axios.post(`/api/candidates/${id}/notes`, { text: newNote });
       const response = await candidatesService.addCandidateNote(id, newNote);
+      console.log(response.data);
 
       const newNoteObj = {
         id: Math.random().toString(36).substr(2, 9),
-        text: newNote,
-        date: new Date().toISOString().split('T')[0],
-        author: 'Utilisateur actuel' // In a real app, this would be the current user
+        content: newNote,
+         // In a real app, this would be the current user
       };
       
       setCandidate(prev => prev ? {
@@ -226,16 +229,13 @@ const CandidateDetail: React.FC = () => {
         notes: [response, ...prev.notes]
       } : null);
       
-      setNewNote('');
+      setNewNote(response.data);
     } catch (error) {
       console.error('Error adding note:', error);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('fr-FR').format(date);
-  };
+  
 
   const getStatusClass = (status: string) => {
     switch (status) {

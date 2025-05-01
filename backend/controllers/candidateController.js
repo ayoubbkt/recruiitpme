@@ -117,6 +117,8 @@ const getCandidateById = async (req, res) => {
   try {
     const { id } = req.params;
 
+    
+
     // Récupérer le candidat avec ses notes et documents
     const candidate = await prisma.candidate.findUnique({
       where: { id },
@@ -317,16 +319,17 @@ const updateCandidateStatus = async (req, res) => {
  * @param {Object} res - Réponse Express
  */
 const addCandidateNote = async (req, res) => {
+  console.log("hhh hello");
+   
   try {
     const { id } = req.params;
-    const { text } = req.body;
-    const author = `${req.user.firstName} ${req.user.lastName}`;
-
+    const { content } = req.body;
+ 
     // Vérifier si le candidat existe
     const candidate = await prisma.candidate.findUnique({
       where: { id }
     });
-
+   
     if (!candidate) {
       return respondWithError(res, 404, 'Candidat non trouvé');
     }
@@ -334,11 +337,12 @@ const addCandidateNote = async (req, res) => {
     // Créer la note
     const note = await prisma.note.create({
       data: {
-        text,
-        author,
-        candidateId: id
+        content,
+        candidateId: id,
+        userId: req.user.id 
       }
     });
+    
 
     // Mettre à jour la date de dernière activité du candidat
     await prisma.candidate.update({

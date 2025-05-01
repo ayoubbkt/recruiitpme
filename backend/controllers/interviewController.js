@@ -121,6 +121,7 @@ const getInterviews = async (req, res) => {
  * @param {Object} req - Requête Express
  * @param {Object} res - Réponse Express
  */
+// backend/controllers/interviewController.js
 const getInterviewById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -142,6 +143,14 @@ const getInterviewById = async (req, res) => {
             title: true,
             location: true
           }
+        },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
         }
       }
     });
@@ -151,11 +160,16 @@ const getInterviewById = async (req, res) => {
     }
 
     // Formater l'entretien pour la réponse
-    const { candidate, job, ...interviewData } = interview;
     const formattedInterview = {
-      ...interviewData,
-      candidate,
-      job
+      ...interview,
+      candidateName: interview.candidate.name,
+      candidateEmail: interview.candidate.email,
+      candidatePhone: interview.candidate.phone,
+      jobTitle: interview.job.title,
+      interviewer: interview.interviewerName || `${interview.user.firstName} ${interview.user.lastName}`,
+      interviewerEmail: interview.user.email,
+      // Extraire l'heure si elle est manquante
+      time: interview.time || (interview.date ? new Date(interview.date).toTimeString().slice(0, 5) : '')
     };
 
     return respondWithSuccess(
@@ -170,11 +184,6 @@ const getInterviewById = async (req, res) => {
   }
 };
 
-/**
- * Crée un nouvel entretien
- * @param {Object} req - Requête Express
- * @param {Object} res - Réponse Express
- */
 const createInterview = async (req, res) => {
   try {
     const { 
@@ -212,53 +221,89 @@ const createInterview = async (req, res) => {
       return respondWithError(res, 400, 'La date et l\'heure de l\'entretien ne peuvent pas être dans le passé');
     }
 
-    // Créer l'entretien
-    const interview = await prisma.interview.create({
-      data: {
+    try {
+      // Créer l'entretien en adaptant aux champs disponibles
+      const interviewData = {
         candidateId,
         jobId: candidate.jobId,
         date: interviewDate,
-        time,                      // Ajouté au schéma
-        interviewerName: interviewer, // Ajouté au schéma
-        videoLink,                 // Ajouté au schéma
-        notes,
-        status: 'scheduled',
-        interviewerId: req.user.id// Associer l'entretien à l'utilisateur connecté si disponible
-      }
-    });
+        interviewerId: req.user.id,
+        status: 'scheduled'
+      };
 
-    // Mettre à jour le statut du candidat si nécessaire
-    if (candidate.status === 'new' || candidate.status === 'toContact') {
-      await prisma.candidate.update({
-        where: { id: candidateId },
+      // Ajouter les champs optionnels seulement s'ils existent dans le schéma
+      // Utiliser les types de Prisma pour vérifier si les champs existent
+      const interviewFields = Object.keys(prisma.interview.fields);
+      
+      if (interviewFields.includes('time')) interviewData.time = time;
+      if (interviewFields.includes('interviewerName')) interviewData.interviewerName = interviewer;
+      if (interviewFields.includes('videoLink')) interviewData.videoLink = videoLink;
+      if (!interviewFields.includes('videoLink') && interviewFields.includes('location')) interviewData.location = videoLink;
+      if (interviewFields.includes('notes')) interviewData.notes = notes;
+
+      // Créer l'entretien
+      const interview = await prisma.interview.create({
+        data: interviewData
+      });
+
+      // Mettre à jour le statut du candidat si nécessaire
+      if (candidate.status === 'new' || candidate.status === 'toContact') {
+        await prisma.candidate.update({
+          where: { id: candidateId },
+          data: {
+            status: 'interview',
+            lastActivity: new Date()
+          }
+        });
+      }
+
+      // Envoyer un email au candidat si demandé
+      if (sendEmail) {
+        try {
+          await emailService.sendInterviewInvitation(candidate, interview, candidate.job);
+        } catch (emailError) {
+          logger.error(`Erreur lors de l'envoi de l'email d'invitation: ${emailError.message}`);
+          // Continuer malgré l'erreur d'email, l'entretien est toujours créé
+        }
+      }
+
+      return respondWithSuccess(
+        res,
+        201,
+        'Entretien créé avec succès',
+        interview
+      );
+    } catch (createError) {
+      // Si la création échoue à cause du schéma, essayer sans les nouveaux champs
+      logger.error(`Erreur lors de la première tentative: ${createError.message}`);
+      
+      const interview = await prisma.interview.create({
         data: {
-          status: 'interview',
-          lastActivity: new Date()
+          candidateId,
+          jobId: candidate.jobId,
+          date: interviewDate,
+          location: videoLink,
+          notes: `Interviewer: ${interviewer}\n${notes || ''}`,
+          status: 'scheduled',
+          interviewerId: req.user.id
         }
       });
+      
+      // Retourner le résultat avec un avertissement
+      return respondWithSuccess(
+        res,
+        201,
+        'Entretien créé avec succès (format compatible)',
+        interview
+      );
     }
-
-    // Envoyer un email au candidat si demandé
-    if (sendEmail) {
-      try {
-        await emailService.sendInterviewInvitation(candidate, interview, candidate.job);
-      } catch (emailError) {
-        logger.error(`Erreur lors de l'envoi de l'email d'invitation: ${emailError.message}`);
-        // Continuer malgré l'erreur d'email, l'entretien est toujours créé
-      }
-    }
-
-    return respondWithSuccess(
-      res,
-      201,
-      'Entretien créé avec succès',
-      interview
-    );
   } catch (error) {
     logger.error(`Erreur lors de la création de l'entretien: ${error.message}`);
     return respondWithError(res, 500, 'Erreur lors de la création de l\'entretien', error.message);
   }
 };
+
+// Autres méthodes du contrôleur restent inchangées
 
 /**
  * Met à jour un entretien existant

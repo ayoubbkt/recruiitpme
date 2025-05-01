@@ -50,6 +50,7 @@ model Company {
 }
 
 
+
 // Nouveau modèle pour les préférences de notification
 model NotificationPreference {
   id                    String   @id @default(uuid())

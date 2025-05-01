@@ -22,28 +22,42 @@ import {
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
-import { formatDateTime } from '../../utils/helpers';
+import { formatDate } from '../../utils/helpers';
+
+
 
 // Types
 interface Interview {
   id: string;
   candidateId: string;
-  candidateName: string;
-  candidateEmail: string;
+  candidateName?: string;
+  candidateEmail?: string;
   jobId: string;
-  jobTitle: string;
+  jobTitle?: string;
   date: string;
-  time: string;
-  interviewer: string;
+  time?: string;
+  interviewer?: string;
   interviewerEmail?: string;
   videoLink?: string;
+  location?: string;
   notes?: string;
   status: 'scheduled' | 'completed' | 'canceled' | 'noShow';
   feedback?: string;
   createdAt: string;
   updatedAt: string;
+  candidate?: {
+    name: string;
+    email: string;
+  };
+  job?: {
+    title: string;
+  };
+  user?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
 }
-
 const InterviewDetail: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -55,47 +69,6 @@ const InterviewDetail: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
-  // useEffect(() => {
-  //   // In a real application, fetch data from the backend
-  //   const fetchInterviewDetails = async () => {
-  //     try {
-  //       setIsLoading(true);
-  //       setError(null);
-        
-  //       // Mock data for demonstration
-  //       const mockInterview: Interview = {
-  //         id: id || '1',
-  //         candidateId: '1',
-  //         candidateName: 'Sophie Martin',
-  //         candidateEmail: 'sophie.martin@example.com',
-  //         jobId: '1',
-  //         jobTitle: 'Développeur Full Stack',
-  //         date: '2025-04-25',
-  //         time: '10:00',
-  //         interviewer: 'Marie Dupont',
-  //         interviewerEmail: 'marie.dupont@entreprise.com',
-  //         videoLink: 'https://meet.google.com/abc-defg-hij',
-  //         notes: 'Préparer des questions techniques sur React et Node.js. Vérifier les projets sur GitHub.',
-  //         status: 'scheduled',
-  //         createdAt: '2025-04-15',
-  //         updatedAt: '2025-04-15',
-  //       };
-        
-  //       // Simulate API delay
-  //       setTimeout(() => {
-  //         setInterview(mockInterview);
-  //         setIsLoading(false);
-  //       }, 800);
-  //     } catch (err: any) {
-  //       console.error('Error fetching interview details:', err);
-  //       setError(err.message || 'Une erreur est survenue');
-  //       setIsLoading(false);
-  //     }
-  //   };
-
-  //   fetchInterviewDetails();
-  // }, [id]);
-
   useEffect(() => {
     const fetchInterviewDetails = async () => {
       try {
@@ -104,7 +77,23 @@ const InterviewDetail: React.FC = () => {
         
         // Appel API réel
         const response = await interviewsService.getInterview(id);
-        setInterview(response.data);
+        
+        // Adapter les données du backend au format attendu
+        const data = response.data;
+        const interviewData: Interview = {
+          ...data,
+          // Garantir que toutes les propriétés nécessaires existent
+          candidateName: data.candidateName || data.candidate?.name || 'Candidat inconnu',
+          candidateEmail: data.candidateEmail || data.candidate?.email,
+          jobTitle: data.jobTitle || data.job?.title || 'Poste non spécifié',
+          interviewer: data.interviewerName || data.interviewer || 
+                      (data.user ? `${data.user.firstName} ${data.user.lastName}` : 'Non spécifié'),
+          interviewerEmail: data.interviewerEmail || data.user?.email,
+          // Garantir que time existe
+          time: data.time || (data.date ? new Date(data.date).toTimeString().slice(0, 5) : '')
+        };
+        
+        setInterview(interviewData);
         setIsLoading(false);
       } catch (err) {
         console.error('Error fetching interview details:', err);
@@ -117,32 +106,6 @@ const InterviewDetail: React.FC = () => {
       fetchInterviewDetails();
     }
   }, [id]);
-
-
-  // const handleStatusChange = async (newStatus: 'scheduled' | 'completed' | 'canceled' | 'noShow') => {
-  //   try {
-  //     setSubmitting(true);
-      
-  //     // In a real application, this would be an API call
-  //     // await axios.put(`/api/interviews/${id}/status`, { status: newStatus });
-      
-  //     // Update local state
-  //     if (interview) {
-  //       setInterview({
-  //         ...interview,
-  //         status: newStatus,
-  //       });
-  //     }
-      
-  //     // Simulate API delay
-  //     await new Promise(resolve => setTimeout(resolve, 500));
-      
-  //     setSubmitting(false);
-  //   } catch (error) {
-  //     console.error('Error updating interview status:', error);
-  //     setSubmitting(false);
-  //   }
-  // };
 
   const handleStatusChange = async (newStatus) => {
     try {
@@ -175,9 +138,8 @@ const InterviewDetail: React.FC = () => {
     try {
       setSubmitting(true);
       
-      // In a real application, this would be an API call
-      // await axios.post(`/api/interviews/${id}/feedback`, { feedback });
       await interviewsService.addInterviewFeedback(id, feedback);
+      
       // Update local state
       if (interview) {
         setInterview({
@@ -186,9 +148,6 @@ const InterviewDetail: React.FC = () => {
           status: 'completed',
         });
       }
-      
-      // Simulate API delay
-      // await new Promise(resolve => setTimeout(resolve, 800));
       
       setSubmitting(false);
     } catch (error) {
@@ -201,11 +160,7 @@ const InterviewDetail: React.FC = () => {
     try {
       setSubmitting(true);
       
-      // In a real application, this would be an API call
-      // await axios.delete(`/api/interviews/${id}`);
       await interviewsService.deleteInterview(id);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
       
       // Redirect to interviews list
       navigate('/app/interviews');
@@ -216,6 +171,24 @@ const InterviewDetail: React.FC = () => {
     }
   };
 
+  // Fonction sécurisée pour formatter les dates
+  const safeFormatDate = (dateString?: string) => {
+    if (!dateString) return 'Date non disponible';
+    
+    try {
+      // Vérifier si la date est valide
+      const timestamp = Date.parse(dateString);
+      if (isNaN(timestamp)) {
+        return 'Date non disponible';
+      }
+      
+      return formatDate(dateString);
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Date non disponible';
+    }
+  };
+  
   const getStatusBadge = (status: Interview['status']) => {
     switch (status) {
       case 'scheduled':
@@ -234,8 +207,13 @@ const InterviewDetail: React.FC = () => {
   const isInterviewInFuture = () => {
     if (!interview) return false;
     
-    const interviewDateTime = new Date(`${interview.date}T${interview.time}`);
-    return interviewDateTime > new Date();
+    try {
+      const interviewDateTime = new Date(`${interview.date}T${interview.time || '00:00'}`);
+      return interviewDateTime > new Date();
+    } catch (error) {
+      console.error('Error checking if interview is in future:', error);
+      return false;
+    }
   };
   
   const canUpdateStatus = () => {
@@ -273,7 +251,7 @@ const InterviewDetail: React.FC = () => {
     <div>
       {/* Header with interview info and actions */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center mb-4 sm:mb-0">
+      <div className="flex items-center mb-4 sm:mb-0">
           <button
             onClick={() => navigate('/app/interviews')}
             className="mr-4 p-1 rounded-full hover:bg-gray-100"
@@ -283,7 +261,7 @@ const InterviewDetail: React.FC = () => {
           <div>
             <div className="flex items-center">
               <h1 className="text-2xl font-bold text-gray-900 mr-3">
-                Entretien avec {interview.candidateName}
+              Entretien avec {interview.candidateName || 'Candidat inconnu'}
               </h1>
               {getStatusBadge(interview.status)}
             </div>
@@ -297,7 +275,7 @@ const InterviewDetail: React.FC = () => {
               </Link>
               <span className="mx-2">•</span>
               <CalendarIcon className="h-4 w-4 mr-1" />
-              <span>{new Date(interview.date).toLocaleDateString()}</span>
+              <span>{safeFormatDate(interview.date)}</span>
               <span className="mx-2">•</span>
               <ClockIcon className="h-4 w-4 mr-1" />
               <span>{interview.time}</span>
@@ -305,7 +283,7 @@ const InterviewDetail: React.FC = () => {
           </div>
         </div>
         <div className="flex space-x-2">
-          {isInterviewInFuture() && (
+        {isInterviewInFuture() && (
             <Button
               variant="outline"
               size="sm"
@@ -339,11 +317,11 @@ const InterviewDetail: React.FC = () => {
                   <div className="flex items-center text-gray-900">
                     <CalendarIcon className="h-5 w-5 text-gray-400 mr-2" />
                     <span className="font-medium">
-                      {new Date(interview.date).toLocaleDateString()}
+                    {safeFormatDate(interview.date)}
                     </span>
                     <span className="mx-2">•</span>
                     <ClockIcon className="h-5 w-5 text-gray-400 mr-2" />
-                    <span className="font-medium">{interview.time}</span>
+                    <span className="font-medium">{interview.time || '--:--'}</span>
                   </div>
                 </div>
                 
@@ -351,7 +329,7 @@ const InterviewDetail: React.FC = () => {
                   <h3 className="text-sm font-medium text-gray-500">Interviewer</h3>
                   <div className="flex items-center text-gray-900">
                     <UserIcon className="h-5 w-5 text-gray-400 mr-2" />
-                    <span className="font-medium">{interview.interviewer}</span>
+                    <span className="font-medium">{interview.interviewer || 'Non spécifié'}</span>
                   </div>
                   {interview.interviewerEmail && (
                     <div className="text-sm text-gray-600 ml-7">
@@ -366,18 +344,18 @@ const InterviewDetail: React.FC = () => {
                 </div>
               </div>
               
-              {interview.videoLink && (
+              {(interview.videoLink || interview.location) && (
                 <div className="pt-4 border-t border-gray-200">
                   <h3 className="text-sm font-medium text-gray-500 mb-2">Lien visioconférence</h3>
                   <div className="flex items-center">
                     <VideoCameraIcon className="h-5 w-5 text-gray-400 mr-2" />
                     <a
-                      href={interview.videoLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                       href={interview.videoLink || interview.location}
+                       target="_blank"
+                       rel="noopener noreferrer"
                       className="text-primary-600 hover:text-primary-900 flex items-center"
                     >
-                      {interview.videoLink}
+                       {interview.videoLink || interview.location}
                       <ArrowTopRightOnSquareIcon className="h-4 w-4 ml-1" />
                     </a>
                   </div>
@@ -400,16 +378,18 @@ const InterviewDetail: React.FC = () => {
             <div className="flex items-start">
               <div className="flex-shrink-0">
                 <div className="h-12 w-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-lg font-medium">
-                  {interview.candidateName ? interview.candidateName.split(' ').map(name => name[0]).join('') :''}
+                {interview.candidateName 
+                    ? interview.candidateName.split(' ').map(name => name[0]).join('').substring(0, 2) 
+                    : '?'}
                 </div>
               </div>
               <div className="ml-4 flex-1">
                 <div className="flex justify-between">
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">
-                      {interview.candidateName}
+                    {interview.candidateName || 'Candidat inconnu'}
                     </h3>
-                    <p className="text-sm text-gray-600">{interview.jobTitle}</p>
+                    <p className="text-sm text-gray-600">{interview.jobTitle || 'Poste non spécifié'}</p>
                   </div>
                   <Link to={`/app/candidates/${interview.candidateId}`}>
                     <Button variant="outline" size="sm">
@@ -419,7 +399,7 @@ const InterviewDetail: React.FC = () => {
                 </div>
                 <div className="mt-2 flex">
                   <a
-                    href={`mailto:${interview.candidateEmail}`}
+                     href={`mailto:${interview.candidateEmail}`}
                     className="text-sm text-primary-600 hover:text-primary-900 flex items-center"
                   >
                     <PaperAirplaneIcon className="h-4 w-4 mr-1" />
@@ -552,9 +532,9 @@ const InterviewDetail: React.FC = () => {
                 </Button>
               </a>
               
-              {interview.videoLink && (
+              {(interview.videoLink || interview.location)  && (
                 <a
-                  href={interview.videoLink}
+                href={interview.videoLink || interview.location}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -599,11 +579,11 @@ const InterviewDetail: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Créé le</span>
-                <span>{new Date(interview.createdAt).toLocaleDateString()}</span>
+                <span>{safeFormatDate(interview.createdAt)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Dernière mise à jour</span>
-                <span>{new Date(interview.updatedAt).toLocaleDateString()}</span>
+                <span>{safeFormatDate(interview.updatedAt)}</span>
               </div>
             </div>
           </Card>
