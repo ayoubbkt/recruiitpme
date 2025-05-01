@@ -6,17 +6,22 @@ const readFileAsync = promisify(fs.readFile);
 const logger = require('../utils/logger');
 const { extractCvInfo } = require('../utils/helpers');
 
+
 /**
  * Service d'analyse de CV
- * Communique avec le microservice spaCy pour l'extraction d'informations
+ * Communique avec le microservice spaCy et le service de matching pour l'extraction d'informations
  */
+
+// Configuration du service AI
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
 /**
  * Analyse un fichier CV et extrait les informations pertinentes
  * @param {String} filePath - Chemin du fichier CV
- * @returns {Object} - Informations extraites du CV
+ * @param {Object} jobData - Données de l'offre d'emploi (optionnel pour le matching)
+ * @returns {Object} - Informations extraites du CV et score de matching
  */
-const parseCV = async (filePath) => {
+const parseCV = async (filePath, jobData = null) => {
   try {
     // Chemin absolu en développement, clé S3 en production
     const fullPath = process.env.NODE_ENV === 'production' 
@@ -31,22 +36,38 @@ const parseCV = async (filePath) => {
       fileBuffer = await readFileAsync(fullPath);
     }
     
-    // Préparer la requête pour le microservice
-    const payload = process.env.NODE_ENV === 'production'
-      ? { 
-          file_key: filePath, 
-          file_type: path.extname(filePath).substring(1) // sans le point
-        }
-      : { 
-          file_content: fileBuffer.toString('base64'),
-          file_type: path.extname(fullPath).substring(1),
-          file_name: path.basename(fullPath)
-        };
+    // Préparer les données pour la requête
+    const formData = new FormData();
     
-    // Appeler le microservice d'analyse de CV
-    const response = await axios.post(process.env.CV_PARSER_SERVICE_URL, payload, {
+    if (process.env.NODE_ENV === 'production') {
+      // En production, envoyer la clé S3
+      formData.append('file_key', filePath);
+      formData.append('file_type', path.extname(filePath).substring(1));
+    } else {
+      // En développement, envoyer le contenu du fichier
+      formData.append('file', fileBuffer, {
+        filename: path.basename(fullPath)
+      });
+    }
+    
+    // Si des données d'offre sont fournies, effectuer un matching
+    let endpoint = `${AI_SERVICE_URL}/api/analyze_cv/`;
+    
+    if (jobData) {
+      endpoint = `${AI_SERVICE_URL}/api/match/`;
+      const jobOffer = {
+        title: jobData.title,
+        description: jobData.description,
+        skills: jobData.skills || [],
+        experience_level: jobData.experienceLevel
+      };
+      formData.append('job_offer', JSON.stringify(jobOffer));
+    }
+    
+    // Appeler le service d'analyse/matching
+    const response = await axios.post(endpoint, formData, {
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'multipart/form-data',
         'Accept': 'application/json'
       },
       timeout: 30000 // 30 secondes
@@ -56,8 +77,40 @@ const parseCV = async (filePath) => {
       throw new Error(`Erreur d'analyse de CV: ${response.status} ${response.statusText}`);
     }
     
-    // Extraire et nettoyer les données
-    return extractCvInfo(response.data);
+    // Traiter la réponse selon le type d'appel
+    if (jobData) {
+      // Cas de matching avec une offre
+      const result = response.data.results[0]; // Prendre le premier résultat
+      return {
+        name: path.basename(filePath, path.extname(filePath)).replace(/_/g, ' '),
+        email: '', // À compléter avec l'extraction d'email si disponible
+        phone: '',
+        location: '',
+        skills: result.skills || [],
+        experience: result.experience_years || 0,
+        education: result.education || [],
+        matchingScore: result.score,
+        workExperience: [],
+        languages: []
+      };
+    } else {
+      // Cas d'analyse simple sans matching
+      const result = response.data;
+      
+      // Convertir le résultat au format attendu par l'application
+      return {
+        name: path.basename(filePath, path.extname(filePath)).replace(/_/g, ' '),
+        email: '', // À compléter avec l'extraction d'email si disponible
+        phone: '',
+        location: '',
+        skills: result.skills || [],
+        experience: result.experience_years || 0,
+        education: result.education || [],
+        matchingScore: 0, // Pas de score sans matching
+        workExperience: [],
+        languages: []
+      };
+    }
   } catch (error) {
     logger.error(`Erreur lors de l'analyse du CV: ${error.message}`);
     
@@ -70,6 +123,8 @@ const parseCV = async (filePath) => {
     throw new Error(`Erreur lors de l'analyse du CV: ${error.message}`);
   }
 };
+
+// Le reste du service reste inchangé...
 
 /**
  * Analyse de secours simplifiée en cas d'échec du service principal

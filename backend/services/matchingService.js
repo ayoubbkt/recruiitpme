@@ -3,6 +3,10 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const logger = require('../utils/logger');
 const { calculateMatchingScore } = require('../utils/helpers');
+const axios = require('axios');
+
+// Configuration du service AI
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
 // Définir les méthodes encapsulées dans un objet
 const matchingService = {
@@ -113,12 +117,73 @@ const matchingService = {
    */
   async recalculateScoresAfterJobUpdate(jobId) {
     try {
-      // Mettre à jour tous les candidats de cette offre
-      await this.updateAllCandidatesForJob(jobId);
-      return true;
+      // Récupérer l'offre depuis la base de données
+      const job = await prisma.job.findUnique({
+        where: { id: jobId }
+      });
+      
+      if (!job) {
+        throw new Error('Offre non trouvée');
+      }
+      
+      // Récupérer tous les candidats de cette offre
+      const candidates = await prisma.candidate.findMany({
+        where: { jobId }
+      });
+      
+      if (candidates.length === 0) {
+        logger.info(`Aucun candidat trouvé pour l'offre ${jobId}, pas de recalcul nécessaire`);
+        return;
+      }
+      
+      logger.info(`Recalcul des scores pour ${candidates.length} candidats de l'offre ${jobId}`);
+      
+      // Préparer les données de l'offre pour l'API
+      const jobOffer = {
+        title: job.title,
+        description: job.description,
+        skills: job.skills || [],
+        experience_level: job.experienceLevel
+      };
+      
+      // Pour chaque candidat, effectuer un nouvel appel API pour recalculer le score
+      // Vous pourriez optimiser cela en faisant un appel par lot
+      for (const candidate of candidates) {
+        try {
+          // Appel à l'API Python pour calculer le nouveau score
+          const response = await axios.post(
+            `${AI_SERVICE_URL}/api/match/single/`,
+            {
+              job_offer: jobOffer,
+              cv_file_key: candidate.cvFile
+            },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              timeout: 15000
+            }
+          );
+          
+          // Mettre à jour le score dans la base de données
+          if (response.data && response.data.score) {
+            await prisma.candidate.update({
+              where: { id: candidate.id },
+              data: { matchingScore: response.data.score }
+            });
+            
+            logger.info(`Score mis à jour pour le candidat ${candidate.id}: ${response.data.score}`);
+          }
+        } catch (error) {
+          logger.error(`Erreur lors du recalcul du score pour le candidat ${candidate.id}: ${error.message}`);
+          // Continuer avec le candidat suivant
+        }
+      }
+      
+      logger.info(`Recalcul des scores terminé pour l'offre ${jobId}`);
     } catch (error) {
-      logger.error(`Erreur lors du recalcul des scores après mise à jour de l'offre: ${error.message}`);
-      throw new Error(`Erreur lors du recalcul des scores: ${error.message}`);
+      logger.error(`Erreur lors du recalcul des scores de matching: ${error.message}`);
+      throw error;
     }
   }
 };

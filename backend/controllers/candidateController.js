@@ -205,21 +205,18 @@ const uploadAndAnalyzeCV = async (req, res) => {
     // Traiter chaque fichier
     for (const file of files) {
       try {
-        // Analyser le CV
-        const cvData = await cvParserService.parseCV(file.filename);
+        // Analyser le CV avec matching à l'offre
+        const cvData = await cvParserService.parseCV(file.filename, job);
         
-        // Calculer le score de matching
-        const matchingScore = matchingService.matchCandidateWithJob(cvData, job);
-
         // Créer le candidat dans la base de données
         const candidate = await prisma.candidate.create({
           data: {
             name: cvData.name,
-            email: cvData.email || `${cvData.name.toLowerCase().replace(/ /g, '.')}@example.com`, // Email fictif si non trouvé
+            email: cvData.email || `${cvData.name.toLowerCase().replace(/ /g, '.')}@example.com`,
             phone: cvData.phone,
             location: cvData.location,
             jobId,
-            matchingScore,
+            matchingScore: cvData.matchingScore,
             skills: cvData.skills,
             experience: cvData.experience,
             education: cvData.education,
@@ -236,9 +233,10 @@ const uploadAndAnalyzeCV = async (req, res) => {
           success: true,
           candidateId: candidate.id,
           name: candidate.name,
-          matchingScore
+          matchingScore: cvData.matchingScore
         });
       } catch (error) {
+        
         logger.error(`Erreur lors de l'analyse du CV ${file.filename}: ${error.message}`);
         
         // Ajouter l'erreur au résultat
@@ -247,6 +245,8 @@ const uploadAndAnalyzeCV = async (req, res) => {
           filename: file.filename,
           error: error.message
         });
+
+        
       }
     }
 
@@ -409,11 +409,97 @@ const deleteCandidate = async (req, res) => {
   }
 };
 
+// Dans candidateController.js
+/**
+ * Effectue le matching d'un candidat avec une offre spécifique
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
+const matchCandidateWithJob = async (req, res) => {
+  try {
+    const { id, jobId } = req.params;
+
+    // Vérifier si le candidat existe
+    const candidate = await prisma.candidate.findUnique({
+      where: { id }
+    });
+
+    if (!candidate) {
+      return respondWithError(res, 404, 'Candidat non trouvé');
+    }
+
+    // Vérifier si l'offre existe
+    const job = await prisma.job.findUnique({
+      where: { id: jobId }
+    });
+
+    if (!job) {
+      return respondWithError(res, 404, 'Offre d\'emploi non trouvée');
+    }
+
+    // Effectuer le matching
+    try {
+      // Préparer les données pour l'API
+      const jobOffer = {
+        title: job.title,
+        description: job.description,
+        skills: job.skills || [],
+        experience_level: job.experienceLevel
+      };
+      
+      // Appel à l'API Python
+      const response = await axios.post(
+        `${process.env.AI_SERVICE_URL}/api/match/single/`,
+        {
+          job_offer: jobOffer,
+          cv_file_key: candidate.cvFile
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          timeout: 15000
+        }
+      );
+      
+      // Mettre à jour le score et d'autres informations pertinentes
+      const updatedCandidate = await prisma.candidate.update({
+        where: { id },
+        data: {
+          jobId, // Changer l'offre associée au candidat
+          matchingScore: response.data.score,
+          skills: response.data.skills || candidate.skills,
+          lastActivity: new Date()
+        }
+      });
+      
+      return respondWithSuccess(
+        res,
+        200,
+        'Matching effectué avec succès',
+        {
+          candidateId: candidate.id,
+          jobId,
+          matchingScore: response.data.score,
+          summary: response.data.summary
+        }
+      );
+    } catch (error) {
+      logger.error(`Erreur lors du matching: ${error.message}`);
+      return respondWithError(res, 500, 'Erreur lors du matching', error.message);
+    }
+  } catch (error) {
+    logger.error(`Erreur lors du matching: ${error.message}`);
+    return respondWithError(res, 500, 'Erreur lors du matching', error.message);
+  }
+};
+
 module.exports = {
   getCandidates,
   getCandidateById,
   uploadAndAnalyzeCV,
   updateCandidateStatus,
   addCandidateNote,
-  deleteCandidate
+  deleteCandidate,
+  matchCandidateWithJob
 };

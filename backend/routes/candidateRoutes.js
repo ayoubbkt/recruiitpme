@@ -50,5 +50,10 @@ router.post(
 
 // Supprimer un candidat
 router.delete('/:id', candidateController.deleteCandidate);
+router.post(
+  '/:id/match/:jobId',
+  authenticate,
+  candidateController.matchCandidateWithJob
+);
 
 module.exports = router;
