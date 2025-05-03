@@ -196,21 +196,39 @@ export const candidatesService = {
     return response.data;
   },
   
+  // Dans frontend/src/services/api.ts
   uploadCandidateFiles: async (jobId: string, files: File[]) => {
     const formData = new FormData();
     formData.append('jobId', jobId);
-    files.forEach(file => {
-      formData.append('files', file);
+
+    // Vérifier et ajouter chaque fichier
+    files.forEach((file, index) => {
+      console.log(`File ${index + 1}:`, {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
+      formData.append('files', file); // Assurez-vous que la clé correspond à celle attendue par Multer
     });
-    
-    const response = await api.post('/candidates/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+
+    // Log pour vérifier le contenu de FormData (approximatif car FormData n'est pas directement lisible)
+    for (const pair of (formData as any).entries()) {
+      console.log('FormData entry:', pair[0], pair[1]);
+    }
+
+    try {
+      const response = await api.post('/candidates/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
   },
-  
+
   updateCandidateStatus: async (id: string, status: string) => {
     const response = await api.post(`/candidates/${id}/status`, { status });
     return response.data;

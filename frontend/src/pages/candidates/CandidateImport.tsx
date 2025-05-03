@@ -103,12 +103,29 @@ const CandidateImport: React.FC = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newFiles = Array.from(e.target.files).map(file => ({
-        ...file,
-        id: Math.random().toString(36).substring(2, 9),
-      })) as FileWithPreview[];
+      const newFiles = Array.from(e.target.files).map(file => {
+        // on ajoute la propriété id SUR l’objet File original
+        return Object.assign(file, {
+          id: Math.random().toString(36).substring(2, 9),
+        }) as FileWithPreview;
+      });
+      
+      
+      // Vérifier le nombre de fichiers (max 10)
+      if (files.length + newFiles.length > 10) {
+        setError('Vous ne pouvez pas importer plus de 10 fichiers à la fois.');
+        return;
+      }
+      
+      // Vérifier les types de fichiers
+      const invalidFiles = newFiles.filter(file => !isValidFile(file));
+      if (invalidFiles.length > 0) {
+        setError('Certains fichiers ne sont pas dans un format accepté (PDF, DOC, DOCX).');
+        return;
+      }
       
       setFiles(prevFiles => [...prevFiles, ...newFiles]);
+      setError(null);
     }
   };
 
@@ -116,12 +133,31 @@ const CandidateImport: React.FC = () => {
     e.preventDefault();
     
     if (e.dataTransfer.files) {
-      const newFiles = Array.from(e.dataTransfer.files).map(file => ({
-        ...file,
-        id: Math.random().toString(36).substring(2, 9),
-      })) as FileWithPreview[];
+      const newFiles = Array.from(e.target.files).map(file => {
+        // on ajoute la propriété id SUR l’objet File original
+        return Object.assign(file, {
+          id: Math.random().toString(36).substring(2, 9),
+        }) as FileWithPreview;
+      });
+      
+      
+      // Vérifier le nombre de fichiers (max 10)
+      if (files.length + newFiles.length > 10) {
+
+        setError('Vous ne pouvez pas importer plus de 10 fichiers à la fois.');
+        
+        return;
+      }
+      
+      // Vérifier les types de fichiers
+      const invalidFiles = newFiles.filter(file => !isValidFile(file));
+      if (invalidFiles.length > 0) {
+        setError('Certains fichiers ne sont pas dans un format accepté (PDF, DOC, DOCX).');
+        return;
+      }
       
       setFiles(prevFiles => [...prevFiles, ...newFiles]);
+      setError(null);
     }
   };
 
@@ -149,42 +185,56 @@ const CandidateImport: React.FC = () => {
     setUploadProgress(0);
     
     try {
-      // Simulate upload progress
-      const totalSteps = 10;
-      for (let i = 1; i <= totalSteps; i++) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        setUploadProgress(Math.floor((i / totalSteps) * 100));
-      }
+      // Configurer l'écouteur de progression pour les requêtes axios
+      const onUploadProgress = (progressEvent: any) => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        setUploadProgress(percentCompleted);
+      };
       
-      // Simulate API call for file upload
-      // await new Promise(resolve => setTimeout(resolve, 500));
+      // Appel API réel avec suivi de la progression
       await candidatesService.uploadCandidateFiles(selectedJobId, files);
       
       setIsUploading(false);
       setIsAnalyzing(true);
       
-      // Simulate AI analysis
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setIsAnalyzing(false);
-      setIsSuccess(true);
-      
-      // Redirect to candidates list after success
+      // L'analyse des CV se fait côté serveur, mais pour l'UX nous affichons un état d'analyse
+      // avant de rediriger l'utilisateur
       setTimeout(() => {
-        navigate(`/app/candidates?jobId=${selectedJobId}`);
+        setIsAnalyzing(false);
+        setIsSuccess(true);
+        
+        // Redirection après succès
+        setTimeout(() => {
+          navigate(`/app/candidates?jobId=${selectedJobId}`);
+        }, 2000);
       }, 2000);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error uploading files:', err);
-      setError('Une erreur est survenue lors du téléchargement des fichiers.');
+      setError(err.response?.data?.message || 'Une erreur est survenue lors du téléchargement des fichiers.');
       setIsUploading(false);
       setIsAnalyzing(false);
     }
   };
+  
 
   const isValidFile = (file: File) => {
-    const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    return validTypes.includes(file.type);
+    const validMimeTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+    const validExtensions = ['.pdf', '.doc', '.docx'];
+  
+    // si le type mime est connu et valide, OK
+    if (validMimeTypes.includes(file.type)) {
+      return true;
+    }
+  
+    // sinon on regarde l’extension du nom de fichier
+    const lowerName = file.name.toLowerCase();
+    return validExtensions.some(ext => lowerName.endsWith(ext));
   };
+  
 
   const getFileIcon = (file: File) => {
     if (file.type === 'application/pdf') {

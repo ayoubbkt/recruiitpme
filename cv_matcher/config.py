@@ -11,7 +11,7 @@ MODELS_DIR = os.path.join(BASE_DIR, "models")
 
 # Configuration des modèles
 SENTENCE_TRANSFORMER_MODEL = "all-MiniLM-L6-v2"  # Modèle léger de Sentence-BERT
-SPACY_MODEL = "fr_core_news_lg"  # Modèle français de SpaCy (large)
+SPACY_MODEL = "fr_core_news_sm"  # Modèle français de SpaCy (large)
 
 # Seuils et paramètres
 SIMILARITY_THRESHOLD = 0.5  # Seuil minimum de similarité

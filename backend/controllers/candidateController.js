@@ -186,6 +186,10 @@ const uploadAndAnalyzeCV = async (req, res) => {
     const { jobId } = req.body;
     const files = req.files;
 
+    if (!files || files.length === 0) {
+      return respondWithError(res, 400, 'Aucun fichier reçu');
+    }
+
     // Vérifier si l'offre existe
     const job = await prisma.job.findUnique({
       where: { id: jobId }

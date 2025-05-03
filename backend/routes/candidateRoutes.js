@@ -28,11 +28,29 @@ router.get('/:id', candidateController.getCandidateById);
 
 // Upload et analyse des CV
 router.post(
-  '/upload', 
-  uploadCV.array('files', 10), // Maximum 10 fichiers
+  '/upload',
+  (req, res, next) => {
+    console.log('Route /upload appelée');
+    next();
+  },
+  uploadCV.array('files', 10),
+  (req, res, next) => {
+    console.log('Après uploadCV middleware');
+    console.log('req.body:', req.body);
+    console.log('req.files:', req.files || 'Aucun fichier reçu');
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Aucun fichier reçu',
+      });
+    }
+    next();
+  },
   handleUploadError,
   candidateController.uploadAndAnalyzeCV
 );
+
+
 
 // Mettre à jour le statut d'un candidat
 router.post(
