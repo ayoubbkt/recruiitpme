@@ -185,6 +185,7 @@ const parseCV = async (filePath, jobData = null) => {
   }
 };
 
+
 // Le reste du service reste inchangé...
 
 /**

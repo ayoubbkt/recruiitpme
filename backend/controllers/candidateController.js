@@ -234,6 +234,7 @@ const uploadAndAnalyzeCV = async (req, res) => {
           }
         });
 
+        
         // Ajouter le résultat
         results.push({
           success: true,
