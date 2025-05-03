@@ -35,57 +35,126 @@ const parseCV = async (filePath, jobData = null) => {
       fileBuffer = await readFileAsync(fullPath);
     }
     
-    // Préparer les données pour la requête
-    const formData = new FormData();
+    // Première étape : Analyser le CV
+    const analyzeFormData = new FormData();
     
     if (process.env.NODE_ENV === 'production') {
-      // En production, envoyer la clé S3
-      formData.append('file_key', filePath);
-      formData.append('file_type', path.extname(filePath).substring(1));
+      analyzeFormData.append('file_key', filePath);
     } else {
-      // En développement, créer un Blob à partir du buffer
       const blob = new Blob([fileBuffer], { type: 'application/pdf' });
-      // Ou utiliser directement le fileBuffer si axios le supporte
-      formData.append('file', blob, path.basename(fullPath));
+      analyzeFormData.append('file', blob, path.basename(fullPath));
     }
 
     console.log(`Preparing to send request to ${AI_SERVICE_URL}/api/analyze_cv/`);
     console.log(`File path: ${fullPath}`);
     console.log(`Job data provided: ${jobData ? 'Yes' : 'No'}`);
     
-    // Si des données d'offre sont fournies, effectuer un matching
-    let endpoint = `${AI_SERVICE_URL}/api/analyze_cv/`;
-    
-    if (jobData) {
-      endpoint = `${AI_SERVICE_URL}/api/match/`;
-      const jobOffer = {
-        title: jobData.title,
-        description: jobData.description,
-        skills: jobData.skills || [],
-        experience_level: jobData.experienceLevel
-      };
-      console.log(`Job offer data:`, jobOffer);
-      formData.append('job_offer', JSON.stringify(jobOffer));
-    }
-    
     try {
-      // Appeler le service d'analyse/matching
-      const response = await axios.post(endpoint, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Accept': 'application/json'
-        },
-        timeout: 30000 // 30 secondes
-      });
+      // Étape 1: Appeler le service d'analyse de CV
+      const analyzeResponse = await axios.post(
+        `${AI_SERVICE_URL}/api/analyze_cv/`,
+        analyzeFormData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Accept': 'application/json'
+          },
+          timeout: 30000
+        }
+      );
       
-      // Log de la réponse
-      console.log(`Response status: ${response.status}`);
-      console.log(`Response data:`, response.data);
+      console.log(`Response status: ${analyzeResponse.status}`);
+      console.log(`Response data:`, analyzeResponse.data);
       
-      // Traitement normal de la réponse
-      // ...
+      // Si l'analyse a réussi et qu'aucune donnée d'offre n'est fournie, retourner directement les résultats
+      if (!jobData) {
+        const result = analyzeResponse.data;
+        return {
+          name: path.basename(filePath, path.extname(filePath)).replace(/_/g, ' '),
+          email: '',
+          phone: '',
+          location: '',
+          skills: result.skills || [],
+          experience: result.experience_years || 0,
+          education: Array.isArray(result.education) ? result.education : [],
+          matchingScore: 0,
+          workExperience: [],
+          languages: []
+        };
+      }
+      
+      // À ce stade, nous avons réussi à analyser le CV, mais nous devons maintenant calculer un score de matching
+      
+      // Fonction locale pour calculer le score de matching
+      const calculateMatchingScore = (candidateSkills, jobSkills, candidateExperience, jobExperienceLevel) => {
+        let score = 0;
+        
+        // 1. Matching des compétences (60% du score)
+        const skillsWeight = 60;
+        if (jobSkills && jobSkills.length > 0 && candidateSkills && candidateSkills.length > 0) {
+          // Convertir en minuscules
+          const normalizedJobSkills = jobSkills.map(s => s.toLowerCase());
+          const normalizedCandidateSkills = candidateSkills.map(s => s.toLowerCase());
+          
+          // Compter les compétences correspondantes
+          let matchedSkills = 0;
+          normalizedJobSkills.forEach(jobSkill => {
+            if (normalizedCandidateSkills.some(candidateSkill => 
+                candidateSkill.includes(jobSkill) || jobSkill.includes(candidateSkill))) {
+              matchedSkills++;
+            }
+          });
+          
+          // Calculer le score des compétences
+          score += (matchedSkills / normalizedJobSkills.length) * skillsWeight;
+        }
+        
+        // 2. Matching de l'expérience (40% du score)
+        const experienceWeight = 40;
+        const experienceLevels = {
+          'junior': 0,
+          'intermediate': 3,
+          'senior': 5
+        };
+        
+        const requiredExperience = experienceLevels[jobExperienceLevel] || 3;
+        
+        if (candidateExperience >= requiredExperience) {
+          score += experienceWeight;
+        } else if (candidateExperience > 0) {
+          score += (candidateExperience / requiredExperience) * experienceWeight;
+        }
+        
+        // Normaliser le score sur 100
+        return Math.round(score);
+      };
+      
+      // Extraire les données pertinentes du CV analysé
+      const candidateSkills = analyzeResponse.data.skills || [];
+      const candidateExperience = analyzeResponse.data.experience_years || 0;
+      
+      // Calculer le score de matching
+      const matchingScore = calculateMatchingScore(
+        candidateSkills,
+        jobData.skills || [],
+        candidateExperience,
+        jobData.experienceLevel || 'intermediate'
+      );
+      
+      return {
+        name: path.basename(filePath, path.extname(filePath)).replace(/_/g, ' '),
+        email: '',
+        phone: '',
+        location: '',
+        skills: candidateSkills,
+        experience: candidateExperience,
+        education: Array.isArray(analyzeResponse.data.education) ? analyzeResponse.data.education : [],
+        matchingScore: matchingScore,
+        workExperience: [],
+        languages: []
+      };
+      
     } catch (requestError) {
-      // Log détaillé de l'erreur
       console.error(`Error during API request:`, requestError);
       if (requestError.response) {
         console.error(`Response status:`, requestError.response.status);
@@ -94,52 +163,22 @@ const parseCV = async (filePath, jobData = null) => {
       throw requestError;
     }
     
-    
-    if (response.status !== 200) {
-      throw new Error(`Erreur d'analyse de CV: ${response.status} ${response.statusText}`);
-    }
-    
-    // Traiter la réponse selon le type d'appel
-    if (jobData) {
-      // Cas de matching avec une offre
-      const result = response.data.results[0]; // Prendre le premier résultat
-      return {
-        name: path.basename(filePath, path.extname(filePath)).replace(/_/g, ' '),
-        email: '', // À compléter avec l'extraction d'email si disponible
-        phone: '',
-        location: '',
-        skills: result.skills || [],
-        experience: result.experience_years || 0,
-        education: result.education || [],
-        matchingScore: result.score,
-        workExperience: [],
-        languages: []
-      };
-    } else {
-      // Cas d'analyse simple sans matching
-      const result = response.data;
-      
-      // Convertir le résultat au format attendu par l'application
-      return {
-        name: path.basename(filePath, path.extname(filePath)).replace(/_/g, ' '),
-        email: '', // À compléter avec l'extraction d'email si disponible
-        phone: '',
-        location: '',
-        skills: result.skills || [],
-        experience: result.experience_years || 0,
-        education: result.education || [],
-        matchingScore: 0, // Pas de score sans matching
-        workExperience: [],
-        languages: []
-      };
-    }
   } catch (error) {
     logger.error(`Erreur lors de l'analyse du CV: ${error.message}`);
     
     // Fallback: analyse simplifiée si le service est indisponible
     if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
       logger.warn('Utilisation de l\'analyse de secours');
-      return performBackupParsing(filePath);
+      
+      // Analyse de secours basique
+      const fallbackResult = performBackupParsing(filePath);
+      
+      // Si des données d'offre sont fournies, attribuer un score par défaut
+      if (jobData) {
+        fallbackResult.matchingScore = 50; // Score par défaut moyen
+      }
+      
+      return fallbackResult;
     }
     
     throw new Error(`Erreur lors de l'analyse du CV: ${error.message}`);

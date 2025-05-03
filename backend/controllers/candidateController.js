@@ -219,17 +219,17 @@ const uploadAndAnalyzeCV = async (req, res) => {
           data: {
             name: cvData.name,
             email: cvData.email || `${cvData.name.toLowerCase().replace(/ /g, '.')}@example.com`,
-            phone: cvData.phone,
-            location: cvData.location,
+            phone: cvData.phone || '',
             jobId,
-            matchingScore: cvData.matchingScore,
-            skills: cvData.skills,
-            experience: cvData.experience,
-            education: cvData.education,
-            workExperience: cvData.workExperience,
-            languages: cvData.languages,
+            userId: req.user.id,
+            matchingScore: cvData.matchingScore || 0,
+            skills: cvData.skills || [],
+            experience: cvData.experience || 0,
+            // Convertir le tableau en chaîne de caractères
+            education: Array.isArray(cvData.education) ? cvData.education.join(' | ') : (cvData.education || ''),
             status: 'new',
-            cvFile: file.filename,
+            // Utiliser resumeUrl au lieu de cvFile
+            resumeUrl: file.filename,
             lastActivity: new Date()
           }
         });
