@@ -210,7 +210,9 @@ const uploadAndAnalyzeCV = async (req, res) => {
     for (const file of files) {
       try {
         // Analyser le CV avec matching à l'offre
+        console.log(`Tentative d'analyse du CV ${file.filename} pour l'offre ${jobId}`);
         const cvData = await cvParserService.parseCV(file.filename, job);
+        console.log("hi ", cvData);
         
         // Créer le candidat dans la base de données
         const candidate = await prisma.candidate.create({

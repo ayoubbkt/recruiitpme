@@ -29,7 +29,6 @@ const parseCV = async (filePath, jobData = null) => {
       : path.join(__dirname, '..', 'uploads', 'cvs', path.basename(filePath));
     
     // En développement, lire le fichier depuis le disque
-    let fileContent;
     let fileBuffer;
     
     if (process.env.NODE_ENV !== 'production') {
@@ -44,11 +43,15 @@ const parseCV = async (filePath, jobData = null) => {
       formData.append('file_key', filePath);
       formData.append('file_type', path.extname(filePath).substring(1));
     } else {
-      // En développement, envoyer le contenu du fichier
-      formData.append('file', fileBuffer, {
-        filename: path.basename(fullPath)
-      });
+      // En développement, créer un Blob à partir du buffer
+      const blob = new Blob([fileBuffer], { type: 'application/pdf' });
+      // Ou utiliser directement le fileBuffer si axios le supporte
+      formData.append('file', blob, path.basename(fullPath));
     }
+
+    console.log(`Preparing to send request to ${AI_SERVICE_URL}/api/analyze_cv/`);
+    console.log(`File path: ${fullPath}`);
+    console.log(`Job data provided: ${jobData ? 'Yes' : 'No'}`);
     
     // Si des données d'offre sont fournies, effectuer un matching
     let endpoint = `${AI_SERVICE_URL}/api/analyze_cv/`;
@@ -61,17 +64,36 @@ const parseCV = async (filePath, jobData = null) => {
         skills: jobData.skills || [],
         experience_level: jobData.experienceLevel
       };
+      console.log(`Job offer data:`, jobOffer);
       formData.append('job_offer', JSON.stringify(jobOffer));
     }
     
-    // Appeler le service d'analyse/matching
-    const response = await axios.post(endpoint, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        'Accept': 'application/json'
-      },
-      timeout: 30000 // 30 secondes
-    });
+    try {
+      // Appeler le service d'analyse/matching
+      const response = await axios.post(endpoint, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Accept': 'application/json'
+        },
+        timeout: 30000 // 30 secondes
+      });
+      
+      // Log de la réponse
+      console.log(`Response status: ${response.status}`);
+      console.log(`Response data:`, response.data);
+      
+      // Traitement normal de la réponse
+      // ...
+    } catch (requestError) {
+      // Log détaillé de l'erreur
+      console.error(`Error during API request:`, requestError);
+      if (requestError.response) {
+        console.error(`Response status:`, requestError.response.status);
+        console.error(`Response data:`, requestError.response.data);
+      }
+      throw requestError;
+    }
+    
     
     if (response.status !== 200) {
       throw new Error(`Erreur d'analyse de CV: ${response.status} ${response.statusText}`);
